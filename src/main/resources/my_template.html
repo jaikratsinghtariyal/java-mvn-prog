@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+foo: {{foo}}<br>
+getBar(): {{bar}}<br>
+<br>
+Data of S:<br>
+{{#strings}}
+{{-index}} value: {{this}}<br>
+{{/strings}}
+<br>
+List of Ls:<br>
+{{#list}}
+value: {{.}}<br>
+{{/list}}
+<br>
+map:<br>
+{{#map}}
+{{key1}}, {{key2}}, {{key3}}
+{{/map}}
+
+</body>
+</html>

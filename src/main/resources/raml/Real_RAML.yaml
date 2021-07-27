@@ -1,0 +1,230 @@
+#%RAML 1.0
+
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTPS
+title: Retrieve OneView
+baseUri: www.hsbc.com
+types:
+  Org:
+    type: object
+    properties:
+      onCall: AlertableAdmin
+      head: Manager
+  Person:
+    type: object
+    properties:
+      firstname: string
+      lastname:
+        type: string
+        required: true
+      title?:
+        type: string
+        required: false
+  Phone:
+    type: string
+    pattern: "[0-9|-]+"
+  Manager:
+    type: Person
+    properties:
+      reports: Person[]
+      #phone:  Phone
+      phone:
+        type: string
+        pattern: "[0-9|-]+"
+  Admin:
+    type: Person
+    properties:
+      clearanceLevel:
+        enum: [ low, high ]
+  AlertableAdmin:
+    type: Admin
+    properties:
+      #phone: Phone
+      phone:
+        type: string
+        pattern: "[0-9|-]+"
+resourceTypes:
+  collection:
+    get:
+      description: A List
+      headers:
+        APIKey:
+  corpResource:
+    post?:
+      description: Some info about <<TextAboutPost>>.
+      headers:
+        X-Chargeback:
+          required: true
+/products:
+  type: collection
+  get:
+    description: override the description
+    responses:
+      200:
+        body:
+          application/json:
+/servers:
+  type:
+    corpResource:
+      TextAboutPost: post method # post defined which will force to define the TextAboutPost parameter
+  get:
+  post: # will require the X-Chargeback header
+/queues:
+  type: corpResource
+  get:
+/users/{id}:
+  get:
+    queryParameters:
+      page:
+        description: Specify the page that you want to retrieve
+        type: integer
+        required: true
+        example: 1
+      per_page:
+        description: Specify the amount etrieved per page
+        type: integer
+        minimum: 10
+        maximum: 200
+        default: 30
+        example: 50
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            properties:
+              firstname:
+                type: string
+              lastname:
+                type: string
+              age:
+                type: number
+/orgs/{orgId}:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            type: Org
+/{sourceid}/customers/{customerid}/billpay/oneview:
+  post:
+    headers:
+      Content-Type:
+        description: Request Content-Type to take the values application/json
+        example: application/json
+        type: string
+      Accept:
+        description: Accept Response Content-Type to take the values application/json
+        example: application/json
+        type: string
+    body: {}
+    responses:
+      "200":
+        body:
+          type: object
+    securedBy: []
+  get:
+    body: {}
+    responses:
+      "200":
+        body:
+          application/json:
+            properties:
+              objectid:
+                description: String representing the object's type. This value will be fixed as - oneview.
+                example: oneview
+                type: string
+              sourceid:
+                description: Fixed sourceid provided by BillDesk to the client.
+                example: hsbc-source-id
+                type: string
+              customerid:
+                description: "Represents the unique id for the customer of the client.This can be either: assigned by the client or assigned by BillDesk for the client request"
+                example: "498443645"
+                type: string
+              billeraccount:
+                description: A billeraccount associated with the customerid
+                properties:
+                  billeraccountid:
+                    description: Unique id assigned to each biller account by BillDesk for registered biller accounts.
+                    example: RELEN155187
+                    type: string
+                  objectid:
+                    description: String representing the object's type. Objects of the same type share the same value. This value will be fixed as - billeraccount
+                    example: billeraccount
+                    type: string
+                  sourceid:
+                    description: Fixed sourceid provided by BillDesk to the client.
+                    example: hsbc-source-id
+                    type: string
+                  customerid:
+                    description: Represents the unique id for the customer of the client. This can be either assigned by the client or assigned by BillDesk for the client request
+                    example: "12344567"
+                    type: string
+                  billerid:
+                    description: Unique billerid assigned to each biller by BillDesk.
+                    example: RELENG
+                    type: string
+                  authenticators:
+                    items:
+                      properties:
+                        seq:
+                          description: represents the sequence in which the parameter_name can be displayed in the frontend application
+                          example: "1"
+                          type: string
+                        parameter_name:
+                          description: Fixed value indicating the parameter that identifies the billeraccount. For eg. Consumer Number
+                          example: Consumer No
+                          type: string
+                        value:
+                          description: represents the value of the underlying parameter_name. For eg. 20382028438
+                          example: "20382028438"
+                          type: string
+                        status:
+                          example: Example
+                          type: string
+                  billlist:
+                    description: Represents the list of bills where multiple bills can be presented for a biller.In case of single bill, one bill data will be returned.
+                    items:
+                      properties:
+                        billid:
+                          description: Unique id assigned to each bill by BillDesk.
+                          example: REF0000000001
+                          type: string
+                        objectid:
+                          description: String representing the object's type. This value will be fixed as - bill
+                          example: bill
+                          type: string
+                        billduedate:
+                          description: Billing due date for the bill.
+                          example: 02-09-2017
+                          type: string
+                        net_billamount:
+                          description: Net amount to be paid, ie Bill amount - Discount + Late payment charges.
+                          example: "500.00"
+                          type: string
+                        early_billduedate:
+                          example: Example
+                          type: string
+                        late_payment_charges:
+                          example: "50.00"
+                          type: string
+                        early_billdiscount:
+                          example: "15.00"
+                          type: string
+                        description:
+                          example: Bill payment for MSEB
+                          type: string
+    securedBy: []
+  uriParameters:
+    sourceid:
+      description: Fixed sourceid provided by BillDesk to the client.
+      example: hsbc-source-id
+      type: string
+    customerid:
+      description: Represents the unique id for the customer as provided by the source.
+      example: "12345678"
+      type: string
