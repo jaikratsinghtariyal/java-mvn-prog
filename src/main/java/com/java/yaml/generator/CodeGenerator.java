@@ -18,6 +18,7 @@ public class CodeGenerator {
     private final RAML raml;
     private final Properties properties;
     private final Map ramlMap;
+    private final Map<String, String> importMap = new HashMap<>();
 
     public CodeGenerator(RAML raml, Properties properties, Map ramlMap) {
         this.raml = raml;
@@ -40,7 +41,7 @@ public class CodeGenerator {
             models.put("package", properties.getProperty("model"));
             //models.put("modelPackage", properties.getProperty("model"));
             String filename = modelFilename("model.mustache", modelName);
-
+            importMap.put(modelName, properties.getProperty("model").concat(".").concat(modelName));
             File written = processTemplateToFile(models, "model.mustache", filename);
             if (written != null) {
                 files.add(written);
@@ -153,7 +154,7 @@ public class CodeGenerator {
     }
 
     private Map<String, Object> processModel(Map types) {
-        Map<String, Object> objs = new HashMap<String, Object>();
+        Map<String, Object> objs = new HashMap<>();
         Set<String> modelKeys = types.keySet();
         for (String name : modelKeys) {
             Map<String, Object> map = (Map) types.get(name);
@@ -196,7 +197,7 @@ public class CodeGenerator {
 
     private List<ModelProperty> populateProperties(String modelName, Map<String, Object> actualMap) {
         Map<String, Object> map = (Map) actualMap.get(modelName);
-        List<ModelProperty> vars = new ArrayList<ModelProperty>();
+        List<ModelProperty> vars = new ArrayList<>();
         //Check if Field is composite or predefined datatype.
         if (map.get("type").equals("object")) {
             Map<String, Object> modelProperties = (Map<String, Object>) map.get("properties");
@@ -219,7 +220,7 @@ public class CodeGenerator {
                 vars.add(property);
             }
         } else if (properties.getProperty("datatypes").contains((String) map.get("type"))) {
-            System.out.println("asdfsa");
+            System.out.println("Handle this");
         } else {
             Map<String, Object> modelProperties = (Map<String, Object>) map.get("properties");
             Set<String> modelPropertiesKeys = modelProperties.keySet();
@@ -235,7 +236,7 @@ public class CodeGenerator {
                 if (value instanceof Map) {
                     Map valueMap = (Map) value;
                     if (true) {
-                        // Fix for types like ENUM etc
+                        System.out.println("Fix for types like ENUM etc");
                     }
                     if (valueMap.get("type") != null) {
                         property.datatype = camelize((String) valueMap.get("type"), false);
@@ -498,12 +499,11 @@ public class CodeGenerator {
     }
 
     public void generateController(List<File> files) throws IOException {
-        Map<String, RamlOperation> paths = processPaths(ramlMap);
-        //populateImports()
-        //
+        Set<String> imports = new HashSet<>();
+        Map<String, RamlOperation> paths = processPaths(ramlMap, imports);
 
         Map<String, Object> operations = new HashMap<>();
-        List objs = new ArrayList();
+        List<RamlOperation> objs = new ArrayList();
         for (String path : paths.keySet()) {
             //Map<String, Object> models = (Map<String, Object>) modelMap.get(modelName);
             //RamlOperation operation = (RamlOperation) paths.get(path);
@@ -512,40 +512,59 @@ public class CodeGenerator {
         }
         operations.put("operations", objs);
         operations.put("package", properties.getProperty("controller"));
+        importMap.put("Controller", properties.getProperty("controller").concat(".").concat("Controller"));
+
+        operations.put("imports", processControllerImports(imports));
         //operation.put("importPath", config.toApiImport(tag));
         //models.put("modelPackage", properties.getProperty("model"));
         String filename = controllerFilename("controller.mustache", "Controller");
 
         File written = processTemplateToFile(operations, "controller.mustache", filename);
-        if (written != null) {
-            files.add(written);
-        }
+        files.add(written);
     }
 
-    private Map<String, RamlOperation> processPaths(Map ramlMap) {
+    private List<Map<String, String>> processControllerImports(Set<String> imports) {
+        List<Map<String, String>> importList = new ArrayList<>();
+        for (String importStr : imports) {
+            Map<String, String> map = new HashMap<>();
+            map.put("import", this.importMap.get(importStr));
+            importList.add(map);
+        }
+
+        return importList;
+    }
+
+    private Map<String, RamlOperation> processPaths(Map ramlMap, Set<String> imports) {
         Map<String, RamlOperation> paths = new HashMap<>();
         Set<String> mapKey = ramlMap.keySet();
         for (String key : mapKey) {
             if (key.startsWith("/")) {
-                paths.put(key, processOperation(key, (Map) ramlMap.get(key)));
+                //if(ramlMap.get(key) instanceof Map){
+                    Set<String> ops = ((Map)ramlMap.get(key)).keySet();
+                    for (String op : ops) {
+                        paths.put(key+op, processOperation(key, op, (Map) ((Map)ramlMap.get(key)).get(op), imports));
+                    }
+                //}
+                //paths.put(key, processOperation(key, (Map) ramlMap.get(key), imports));
             }
         }
 
-        mapKey = paths.keySet();
+ /*       mapKey = paths.keySet();
         for (String key : mapKey) {
 
-        }
+        }*/
 
         return paths;
     }
 
-    private RamlOperation processOperation(String path, Map map) {
+    private RamlOperation processOperation(String path, String op, Map map, Set<String> imports) {
         RamlOperation ramlOperation = new RamlOperation();
         ramlOperation.path = path;
-        String methodType = null;
-        if (map.get("get") != null) {
+        ramlOperation.httpMethod = (String) properties.get(op.toUpperCase());
+
+       /* if (map.get("get") != null) {
             ramlOperation.httpMethod = (String) properties.get("GET");
-            methodType = "get";
+            methodType = "op";
         } else if (map.get("post") != null) {
             ramlOperation.httpMethod = (String) properties.get("POST");
             methodType = "post";
@@ -555,20 +574,28 @@ public class CodeGenerator {
         } else if (map.get("delete") != null) {
             ramlOperation.httpMethod = (String) properties.get("DELETE");
             methodType = "delete";
-        }
-        ramlOperation.operationId =  camelize((String)((Map)map.get(methodType)).get("displayName"), true);
+        }*/
+
+        ramlOperation.operationId =  camelize((String)map.get("displayName"), true);
 
         checkPathParams(ramlOperation, path);
-        checkQueryParams(ramlOperation, (Map) map.get(methodType));
-        updateReturnTypes(ramlOperation, (Map) ((Map)map.get(methodType)).get("responses"));
+        checkQueryParams(ramlOperation, map);
+        updateReturnTypes(ramlOperation, (Map) map.get("responses"), imports);
 
         //System.out.println(map);
         return ramlOperation;
     }
 
-    private void updateReturnTypes(RamlOperation ramlOperation, Map map) {
-        ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("200")).get("body")).get("application/json")).get("type");
-        System.out.println("");
+    private void updateReturnTypes(RamlOperation ramlOperation, Map map, Set<String> imports) {
+        if (map != null && map.get("200") != null) {
+            ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("200")).get("body")).get("application/json")).get("type");
+        } else if (map != null && map.get("201") != null) {
+            ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("201")).get("body")).get("application/json")).get("type");
+        } else {
+            //ramlOperation.returnType = "Void";
+        }
+
+        imports.add(ramlOperation.returnType);
     }
 
     private void checkQueryParams(RamlOperation ramlOperation, Map queryParamMap) {
@@ -581,7 +608,6 @@ public class CodeGenerator {
 
     private List<RamlParam> prepareQueryParam(Map queryParamMap) {
         List<RamlParam> params = new ArrayList<>();
-
 
         Set<String> paramKeys = queryParamMap.keySet();
         for (String param : paramKeys) {
@@ -614,7 +640,7 @@ public class CodeGenerator {
             RamlParam ramlParam = new RamlParam();
             ramlParam.paramName = m.group(1);
             ramlParam.isPathParam = true;
-            ramlParam.dataType = "@PathParam String";
+            ramlParam.dataType = "@PathVariable String";
             params.add(ramlParam);
         }
 

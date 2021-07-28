@@ -1,17 +1,12 @@
 {{>licenseInfo}}
 package {{package}};
 
-import com.sun.jersey.api.client.GenericType;
-
-import {{invokerPackage}}.ApiException;
-import {{invokerPackage}}.ApiClient;
-import {{invokerPackage}}.Configuration;
-import {{modelPackage}}.*;
-import {{invokerPackage}}.Pair;
-
-{{#imports}}import {{import}};
+{{#imports}}
+    import {{import}};
 {{/imports}}
 
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http;
 
 {{^fullJavaUtil}}
     import java.util.ArrayList;
@@ -32,8 +27,10 @@ public class APIController {
 
     {{#operations}}
         @{{#httpMethod}}{{{httpMethod}}}("{{#path}}{{{path}}}{{/path}}"){{/httpMethod}}
-        public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})  {
-            return service.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+        public {{#returnType}}ResponseEntity<{{{returnType}}}> {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})  {
+            {{#returnType}}{{{returnType}}} obj = {{/returnType}} service.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+            {{#returnType}} return new ResponseEntity(obj, HttpStatus.OK); {{/returnType}}
         }
+
     {{/operations}}
 }

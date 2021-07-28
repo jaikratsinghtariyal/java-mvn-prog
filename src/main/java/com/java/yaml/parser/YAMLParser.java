@@ -25,27 +25,25 @@ public class YAMLParser {
        // System.out.println(json);
         Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
         RAML raml = new RAML();
-        generateModels(map, raml, ramlConfigurator.getProperties());
-        //generateApis(map, raml);
+        raml.setTypes((Map) map.get("types"));
+
+        List<File> files = new ArrayList<File>();
+        CodeGenerator obj = new CodeGenerator(raml, ramlConfigurator.getProperties(), map);
+
+        generateModels(files, obj);
+        generateApis(files, obj);
         //generateSupportingFiles(map, raml);
     }
 
-    private void generateModels(Map<String, ? extends Object> map, RAML raml, Properties properties) throws IOException {
-        Map modelMap = (Map) map.get("types");
-        raml.setTypes(modelMap);
-
-        CodeGenerator obj = new CodeGenerator(raml, properties, map);
-        List<File> files = new ArrayList<File>();
-
+    private void generateModels(List<File> files, CodeGenerator obj) throws IOException {
         obj.generateModels(files);
+    }
+
+    private void generateSupportingFiles(List<File> files, CodeGenerator obj) throws IOException {
+        //obj.generateController(files);
+    }
+
+    private void generateApis(List<File> files, CodeGenerator obj) throws IOException {
         obj.generateController(files);
-    }
-
-    private void generateSupportingFiles(Map<String, ? extends Object> map, RAML raml) {
-
-    }
-
-    private void generateApis(Map<String, ? extends Object> map, RAML raml) {
-
     }
 }

@@ -8,6 +8,20 @@ protocols:
 title: Retrieve OneView
 baseUri: www.hsbc.com
 types:
+  User:
+    type: object
+    properties:
+      name: string
+      lastname: string
+    example:
+      name: Bob
+      lastname: Marley
+  Organization:
+    type: object
+    properties:
+      name: string
+      address?: string
+      value?: string
   Org:
     type: object
     properties:
@@ -203,12 +217,34 @@ resourceTypes:
         body:
           application/json:
             type: Biller
-  uriParameters:
-    sourceid:
-      description: Fixed sourceid provided by BillDesk to the client.
-      example: hsbc-source-id
-      type: string
-    customerid:
-      description: Represents the unique id for the customer as provided by the source.
-      example: "12345678"
-    type: string
+/organisation:
+  post:
+    displayName: AddOrganization
+    headers:
+      UserID:
+        description: the identifier for the user that posts a new organisation
+        type: string
+        example: SWED-123 # single scalar example
+    body:
+      application/json:
+        type: Organization
+        example: # single request body example
+          value: # needs to be declared since type contains 'value' property
+            name: Doe Enterprise
+            value: Silver
+  get:
+    displayName: GetOrganization
+    description: Returns an organisation entity.
+    responses:
+      201:
+        body:
+          application/json:
+            type: Organization
+            examples:
+              acme:
+                name: Acme
+              softwareCorp:
+                value: # validate against the available facets for the map value of an example
+                  name: Software Corp
+                  address: 35 Central Street
+                  value: Gold # validate against instance of the `value` property
