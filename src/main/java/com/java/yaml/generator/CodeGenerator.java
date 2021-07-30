@@ -19,11 +19,15 @@ public class CodeGenerator {
     private final Properties properties;
     private final Map ramlMap;
     private final Map<String, String> importMap = new HashMap<>();
+    private final String basePath;
+    private final Map<String, String> commonAttributes;
 
-    public CodeGenerator(RAML raml, Properties properties, Map ramlMap) {
+    public CodeGenerator(RAML raml, Properties properties, Map ramlMap, String basePath, Map<String, String> commonAttributes) {
         this.raml = raml;
         this.properties = properties;
         this.ramlMap = ramlMap;
+        this.basePath = basePath;
+        this.commonAttributes = commonAttributes;
     }
 
     public void generateModels(List<File> files) throws IOException {
@@ -38,14 +42,12 @@ public class CodeGenerator {
             RamlModel model = (RamlModel) modelMap.get(modelName);
             ObjectMapper m = new ObjectMapper();
             Map<String, Object> models = m.convertValue(model, Map.class);
-            models.put("package", properties.getProperty("model"));
+            models.put("package", commonAttributes.get("modelPackage"));
             //models.put("modelPackage", properties.getProperty("model"));
             String filename = modelFilename("model.mustache", modelName);
-            importMap.put(modelName, properties.getProperty("model").concat(".").concat(modelName));
+            importMap.put(modelName, commonAttributes.get("modelPackage").concat(".").concat(modelName));
             File written = processTemplateToFile(models, "model.mustache", filename);
-            if (written != null) {
-                files.add(written);
-            }
+            files.add(written);
         }
     }
 
@@ -68,7 +70,7 @@ public class CodeGenerator {
         return new File(adjustedOutputFilename);
     }
 
-    public File writeToFile(String filename, String contents) throws IOException {
+    public void writeToFile(String filename, String contents) throws IOException {
         File output = new File(filename);
 
         if (output.getParent() != null && !new File(output.getParent()).exists()) {
@@ -80,7 +82,6 @@ public class CodeGenerator {
 
         out.write(contents);
         out.close();
-        return output;
     }
 
     public String getFullTemplateFile(String templateFile) {
@@ -95,7 +96,7 @@ public class CodeGenerator {
             }
             Scanner s = new Scanner(reader).useDelimiter("\\A");
             return s.hasNext() ? s.next() : "";
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         throw new RuntimeException("can't load template " + name);
     }
@@ -107,7 +108,7 @@ public class CodeGenerator {
                 is = new FileInputStream(new File(name)); // May throw but never return a null value
             }
             return new InputStreamReader(is, "UTF-8");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         throw new RuntimeException("can't load template " + name);
     }
@@ -134,11 +135,15 @@ public class CodeGenerator {
     }
 
     public String modelFileFolder(String type) {
-        return "/Users/ja20105259/projects/java-mvn-prog/target" + "/" + properties.getProperty(type).replace('.', '/');
+        return this.basePath
+                + commonAttributes.get("srcMainJava")
+                + commonAttributes.get("modelPackage").replaceAll("[.]", "/"); //"/com/example/demo/model";
     }
 
     public String controllerFileFolder(String type) {
-        return "/Users/ja20105259/projects/java-mvn-prog/target" + "/" + properties.getProperty(type).replace('.', '/');
+        return this.basePath
+                + commonAttributes.get("srcMainJava")
+                + commonAttributes.get("controllerPackage").replaceAll("[.]", "/");//"/com/example/demo/controller";
     }
 
     public Map<String, String> controllerTemplateFiles(String type) {
@@ -427,7 +432,7 @@ public class CodeGenerator {
         if (Arrays.stream(properties.getProperty("reservedKeywords").split(",")).findAny().equals(name)) {
             return escapeReservedWord(name);
         } else {
-            return name;
+            return name.replaceAll("[-+.^:,?]","");
         }
     }
 
@@ -511,16 +516,25 @@ public class CodeGenerator {
             objs.add(paths.get(path));
         }
         operations.put("operations", objs);
-        operations.put("package", properties.getProperty("controller"));
+        operations.put("package", commonAttributes.get("controllerPackage"));
         importMap.put("Controller", properties.getProperty("controller").concat(".").concat("Controller"));
 
         operations.put("imports", processControllerImports(imports));
         //operation.put("importPath", config.toApiImport(tag));
         //models.put("modelPackage", properties.getProperty("model"));
-        String filename = controllerFilename("controller.mustache", "Controller");
+        String filename = controllerFilename("controller.mustache", "APIController");
 
         File written = processTemplateToFile(operations, "controller.mustache", filename);
         files.add(written);
+
+        operations.put("package", commonAttributes.get("servicePackage"));
+        written = processTemplateToFile(operations, "service.mustache",
+                basePath
+                        + commonAttributes.get("mvnFoldeStruc")
+                        + "/" + commonAttributes.get("servicePackage").replaceAll("[.]", "/")
+                        + "/APIService.java");
+        files.add(written);
+
     }
 
     private List<Map<String, String>> processControllerImports(Set<String> imports) {
@@ -561,41 +575,41 @@ public class CodeGenerator {
         RamlOperation ramlOperation = new RamlOperation();
         ramlOperation.path = path;
         ramlOperation.httpMethod = (String) properties.get(op.toUpperCase());
-
-       /* if (map.get("get") != null) {
-            ramlOperation.httpMethod = (String) properties.get("GET");
-            methodType = "op";
-        } else if (map.get("post") != null) {
-            ramlOperation.httpMethod = (String) properties.get("POST");
-            methodType = "post";
-        } else if (map.get("put") != null) {
-            ramlOperation.httpMethod = (String) properties.get("PUT");
-            methodType = "put";
-        } else if (map.get("delete") != null) {
-            ramlOperation.httpMethod = (String) properties.get("DELETE");
-            methodType = "delete";
-        }*/
-
         ramlOperation.operationId =  camelize((String)map.get("displayName"), true);
 
+        if ("PostMapping".equals(ramlOperation.httpMethod) &&
+                ((Map)map.get("body")).size() != 0){
+            checkRequestBodyForMethod(ramlOperation, (Map) map.get("body"));
+        }
         checkPathParams(ramlOperation, path);
         checkQueryParams(ramlOperation, map);
-        updateReturnTypes(ramlOperation, (Map) map.get("responses"), imports);
+        checkReturnTypes(ramlOperation, (Map) map.get("responses"), imports);
 
         //System.out.println(map);
         return ramlOperation;
     }
 
-    private void updateReturnTypes(RamlOperation ramlOperation, Map map, Set<String> imports) {
+    private void checkRequestBodyForMethod(RamlOperation ramlOperation, Map body) {
+        List<RamlParam> ramlParams = new ArrayList<>();
+        RamlParam ramlParam = new RamlParam();
+        ramlParam.isBodyParam = true;
+        ramlParam.dataType = (String) ((Map)body.get("application/json")).get("type");
+        ramlParam.paramName = camelize(ramlParam.dataType, true);
+        ramlParams.add(ramlParam);
+        ramlOperation.allParams.addAll(ramlParams);
+        ramlOperation.bodyParam = ramlParam;
+    }
+
+    private void checkReturnTypes(RamlOperation ramlOperation, Map map, Set<String> imports) {
         if (map != null && map.get("200") != null) {
             ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("200")).get("body")).get("application/json")).get("type");
         } else if (map != null && map.get("201") != null) {
             ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("201")).get("body")).get("application/json")).get("type");
-        } else {
-            //ramlOperation.returnType = "Void";
         }
 
-        imports.add(ramlOperation.returnType);
+        if (ramlOperation.returnType != null) {
+            imports.add(ramlOperation.returnType);
+        }
     }
 
     private void checkQueryParams(RamlOperation ramlOperation, Map queryParamMap) {
@@ -620,7 +634,7 @@ public class CodeGenerator {
             ramlParam.required = paramAttributes.get("required") != null ? (boolean) paramAttributes.get("required") : false;
             ramlParam.minimum = String.valueOf(paramAttributes.get("minimum"));
             ramlParam.maximum = String.valueOf(paramAttributes.get("maximum"));
-
+            ramlParam.hasMore = true;
             params.add(ramlParam);
         }
 
@@ -632,7 +646,7 @@ public class CodeGenerator {
         ramlOperation.allParams.addAll(ramlOperation.pathParams);
     }
 
-    private List<RamlParam>  fetchStringBetweenCurlyBraces(String path) {
+    private List<RamlParam> fetchStringBetweenCurlyBraces(String path) {
         Pattern p = Pattern.compile("\\{(.*?)\\}");
         Matcher m = p.matcher(path);
         List<RamlParam> params = new ArrayList<>();
@@ -641,9 +655,19 @@ public class CodeGenerator {
             ramlParam.paramName = m.group(1);
             ramlParam.isPathParam = true;
             ramlParam.dataType = "@PathVariable String";
+            ramlParam.hasMore = true;
             params.add(ramlParam);
         }
 
         return params;
+    }
+
+    public void generateService(List<File> files) {
+
+    }
+
+    public void generateSupportingFiles(Map<String, String> pomAttributes) {
+        //TODO: Check for each supporting file to generate like any Util or POM
+
     }
 }

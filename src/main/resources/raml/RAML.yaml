@@ -235,6 +235,12 @@ resourceTypes:
   get:
     displayName: GetOrganization
     description: Returns an organisation entity.
+    queryParameters:
+      orgId:
+        description: Organization ID
+        type: integer
+        required: true
+        example: 1
     responses:
       201:
         body:

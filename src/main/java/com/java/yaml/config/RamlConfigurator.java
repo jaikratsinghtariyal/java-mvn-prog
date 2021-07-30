@@ -3,6 +3,7 @@ package com.java.yaml.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Properties;
 
 public class RamlConfigurator {
@@ -19,6 +20,8 @@ public class RamlConfigurator {
     private String artifactVersion;
     private String library;
     private String ignoreFileOverride;
+    private String baseRepoPath;
+    Map<String, String> commonAttributes;
 
     public RamlConfigurator() {
         InputStream iStream = null;
@@ -154,5 +157,21 @@ public class RamlConfigurator {
 
     public void setIgnoreFileOverride(String ignoreFileOverride) {
         this.ignoreFileOverride = ignoreFileOverride;
+    }
+
+    public String getBaseRepoPath() {
+        return baseRepoPath;
+    }
+
+    public void setBaseRepoPath(String baseRepoPath) {
+        this.baseRepoPath = baseRepoPath;
+    }
+
+    public Map<String, String> getCommonAttributes() {
+        return commonAttributes;
+    }
+
+    public void setCommonAttributes(Map<String, String> commonAttributes) {
+        this.commonAttributes = commonAttributes;
     }
 }

@@ -6,7 +6,10 @@ package {{package}};
 {{/imports}}
 
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http;
+import org.springframework.http.*;
+import com.example.demo.service.APIService;
+import org.springframework.stereotype.*;
+import org.springframework.beans.factory.annotation.*;
 
 {{^fullJavaUtil}}
     import java.util.ArrayList;
@@ -19,15 +22,15 @@ import org.springframework.http;
 public class APIController {
 
     @Autowired
-    public Service service;
+    public APIService service;
 
-    public APIController(Service service){
+    public APIController(APIService service){
     this.service = service;
     }
 
     {{#operations}}
         @{{#httpMethod}}{{{httpMethod}}}("{{#path}}{{{path}}}{{/path}}"){{/httpMethod}}
-        public {{#returnType}}ResponseEntity<{{{returnType}}}> {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}})  {
+        public {{#returnType}}ResponseEntity<{{{returnType}}}> {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#bodyParam}}@RequestBody {{/bodyParam}}{{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
             {{#returnType}}{{{returnType}}} obj = {{/returnType}} service.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
             {{#returnType}} return new ResponseEntity(obj, HttpStatus.OK); {{/returnType}}
         }
