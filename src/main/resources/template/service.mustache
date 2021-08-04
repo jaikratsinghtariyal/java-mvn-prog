@@ -5,9 +5,17 @@ package {{package}};
     import {{import}};
 {{/imports}}
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.*;
 
+import org.springframework.beans.factory.annotation.*;
+import org.springframework.stereotype.*;
+{{#restClient}}
+    import org.springframework.web.bind.annotation.*;
+    import com.example.java.client.ApiClient;
+{{/restClient}}
+{{#dbClient}}
+    import com.example.java.client.DataBaseClient;
+    import org.springframework.transaction.annotation.Transactional;
+{{/dbClient}}
 {{^fullJavaUtil}}
     import java.util.ArrayList;
     import java.util.HashMap;
@@ -16,18 +24,54 @@ import org.springframework.beans.factory.annotation.*;
 {{/fullJavaUtil}}
 
 @Service
+{{#dbClient}}
+@Transactional
+{{/dbClient}}
 public class APIService {
 
+    {{#restClient}}
     @Autowired
-    public APIClient client;
-
-    public APIService(APIClient client){
-        this.client = client;
-    }
+    public ApiClient client;
 
     {{#operations}}
         public {{#returnType}} {{{returnType}}} {{/returnType}}{{^returnType}} void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
-            {{#returnType}}return{{/returnType}} client.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+            Map queryParams = prepareQueryParamMap({{#queryParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/queryParams}});
+            Map pathParams = preparePathParamMap({{#pathParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/pathParams}});
+            //{{#returnType}}return{{/returnType}} client.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, "{{methodType}}");
+            {{#returnType}}return{{/returnType}} client.{{operationId}}(queryParams, pathParams, "{{methodType}}");
         }
     {{/operations}}
+
+    private Map prepareQueryParamMap({{#operations}}{{#queryParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/queryParams}}{{/operations}}) {
+        Map<String, Object> map = new HashMap<>();
+        {{#operations}}
+            {{#queryParams}}
+                map.put("{{paramName}}", {{paramName}});
+            {{/queryParams}}
+        {{/operations}}
+
+        return map;
+    }
+
+    private Map preparePathParamMap({{#operations}}{{#pathParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/pathParams}}{{/operations}}) {
+        Map<String, String> map = new HashMap<>();
+        {{#operations}}
+            {{#pathParams}}
+                map.put("{{paramName}}", {{paramName}});
+            {{/pathParams}}
+        {{/operations}}
+
+        return map;
+    }
+    {{/restClient}}
+
+    {{#dbClient}}
+    @Autowired
+    public DataBaseClient client;
+    {{#operations}}
+    public {{#returnType}} {{{returnType}}} {{/returnType}}{{^returnType}} void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+        {{#returnType}}return{{/returnType}} client.findBy{{#allParams}}{{baseName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+    }
+    {{/operations}}
+    {{/dbClient}}
 }

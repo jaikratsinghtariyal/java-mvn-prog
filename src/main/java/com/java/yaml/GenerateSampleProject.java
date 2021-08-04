@@ -60,8 +60,6 @@ public class GenerateSampleProject {
     }
 
     private void callStartSpringIO(Map<String, String> attributes) throws IOException {
-
-        //String url = "https://start.spring.io/starter.zip?type=maven-project&language=java&bootVersion=2.5.3.RELEASE&baseDir=demo&groupId=com.example&artifactId=demo&name=demo&description=Demo%20project%20for%20Spring%20Boot&packageName=$packageName&packaging=jar&javaVersion=1.8&dependencies=web";
         String url = "https://start.spring.io/starter.zip?type=maven-project&language=$language&bootVersion=$bootVersion&baseDir=$baseDir&groupId=$groupId&artifactId=$artifactId&name=$name&description=$description&packageName=$packageName&packaging=$packaging&javaVersion=$javaVersion&dependencies=$dependencies";
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()

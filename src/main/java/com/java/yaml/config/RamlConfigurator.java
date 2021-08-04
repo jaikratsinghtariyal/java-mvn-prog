@@ -21,7 +21,7 @@ public class RamlConfigurator {
     private String library;
     private String ignoreFileOverride;
     private String baseRepoPath;
-    Map<String, String> commonAttributes;
+    private Map<String, String> commonAttributes;
 
     public RamlConfigurator() {
         InputStream iStream = null;

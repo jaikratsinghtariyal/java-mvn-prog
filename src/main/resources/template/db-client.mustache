@@ -1,0 +1,19 @@
+{{>licenseInfo}}
+package {{package}};
+
+{{#imports}}
+    import {{import}};
+{{/imports}}
+
+import org.springframework.stereotype.*;
+import java.util.List;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
+@Repository
+public interface DataBaseClient extends JpaRepository<Employees, Long>{
+
+    @Query(value = "{{sql}}", nativeQuery=true)
+    {{#operations}}
+    public {{#returnType}} {{{returnType}}} {{/returnType}}{{^returnType}} void {{/returnType}}findBy{{#allParams}}{{baseName}}{{#hasMore}}And{{/hasMore}}{{/allParams}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+    {{/operations}}
+}

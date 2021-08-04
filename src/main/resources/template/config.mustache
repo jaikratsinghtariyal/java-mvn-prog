@@ -1,0 +1,27 @@
+{{>licenseInfo}}
+package {{package}};
+
+{{#imports}}
+    import {{import}};
+{{/imports}}
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.*;
+import org.springframework.stereotype.*;
+import com.example.java.client.ApiClient;
+{{^fullJavaUtil}}
+    import java.util.ArrayList;
+    import java.util.HashMap;
+    import java.util.List;
+    import java.util.Map;
+{{/fullJavaUtil}}
+
+@Service
+public class ApplicationConfiguration {
+
+    {{#operations}}
+        public {{#returnType}} {{{returnType}}} {{/returnType}}{{^returnType}} void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+        {{#returnType}}return{{/returnType}} client.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+        }
+    {{/operations}}
+}

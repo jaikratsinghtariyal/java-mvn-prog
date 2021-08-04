@@ -1,9 +1,12 @@
 package com.java.yaml.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.java.yaml.convertor.ApplicationUtility;
+import com.java.yaml.convertor.MapEntryConverter;
 import com.java.yaml.model.*;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
+import com.thoughtworks.xstream.XStream;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -32,7 +35,7 @@ public class CodeGenerator {
 
     public void generateModels(List<File> files) throws IOException {
         Map<String, Map> types = raml.getTypes();
-        if (types.size() == 0) {
+        if (types == null) {
             return;
         }
         Map<String, Object> modelMap = processModel(types);
@@ -44,6 +47,8 @@ public class CodeGenerator {
             Map<String, Object> models = m.convertValue(model, Map.class);
             models.put("package", commonAttributes.get("modelPackage"));
             //models.put("modelPackage", properties.getProperty("model"));
+            models.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
+            models.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
             String filename = modelFilename("model.mustache", modelName);
             importMap.put(modelName, commonAttributes.get("modelPackage").concat(".").concat(modelName));
             File written = processTemplateToFile(models, "model.mustache", filename);
@@ -51,7 +56,7 @@ public class CodeGenerator {
         }
     }
 
-    private File processTemplateToFile(Map<String, Object> models, String templateName, String outputFilename) throws IOException {
+    private File processTemplateToFile(Map<String, Object> contentMap, String templateName, String outputFilename) throws IOException {
         String adjustedOutputFilename = outputFilename.replaceAll("//", "/").replace('/', File.separatorChar);
         String templateFile = getFullTemplateFile(templateName);
         String template = readTemplate(templateFile);
@@ -66,11 +71,12 @@ public class CodeGenerator {
                 .defaultValue("")
                 .compile(template);
 
-        writeToFile(adjustedOutputFilename, tmpl.execute(models));
+        writeToFile(adjustedOutputFilename, tmpl.execute(contentMap));
         return new File(adjustedOutputFilename);
     }
 
     public void writeToFile(String filename, String contents) throws IOException {
+        contents = handleSpecialChars(contents);
         File output = new File(filename);
 
         if (output.getParent() != null && !new File(output.getParent()).exists()) {
@@ -82,6 +88,10 @@ public class CodeGenerator {
 
         out.write(contents);
         out.close();
+    }
+
+    private String handleSpecialChars(String contents) {
+        return contents.replaceAll("&#x3D;", "=");
     }
 
     public String getFullTemplateFile(String templateFile) {
@@ -121,29 +131,62 @@ public class CodeGenerator {
     }
 
     public String modelFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFiles("mustacheModel").get(templateName);
-        return modelFileFolder("model") + File.separator + toModelFilename(modelName) + suffix;
+        String suffix = modelTemplateFilesExtensions("mustacheModel").get(templateName);
+        return modelFileFolder() + File.separator + initialCaps(modelName) + suffix;
+    }
+
+    public String appPropFilename(String templateName, String fileName) {
+        String suffix = modelTemplateFilesExtensions("application-properties").get(templateName);
+        return resourcesFileFolder() + fileName + suffix;
     }
 
     public String controllerFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFiles("mustacheController").get(templateName);
-        return controllerFileFolder("controller") + File.separator + toModelFilename(modelName) + suffix;
+        String suffix = modelTemplateFilesExtensions("mustacheController").get(templateName);
+        return controllerFileFolder() + File.separator + toModelFilename(modelName) + suffix;
     }
 
-    public Map<String, String> modelTemplateFiles(String type) {
-        return Collections.singletonMap(properties.getProperty(type), ".java");
+    public String resourcesFileFolder() {
+        return this.basePath
+                + commonAttributes.get("resources");
     }
 
-    public String modelFileFolder(String type) {
+    public String clientFilename(String templateName, String modelName) {
+        String suffix = modelTemplateFilesExtensions("mustacheclient").get(templateName);
+        return clientFileFolder("client") + File.separator + toModelFilename(modelName) + suffix;
+    }
+
+    public String dbClientFilename(String templateName, String modelName) {
+        String suffix = modelTemplateFilesExtensions("mustache-db-client").get(templateName);
+        return dbClientFileFolder("db-client") + File.separator + toModelFilename(modelName) + suffix;
+    }
+
+    public Map<String, String> modelTemplateFilesExtensions(String type) {
+        String[] array = properties.getProperty(type).split(",");
+        return Collections.singletonMap(array[0], array[1]);
+    }
+
+    public String modelFileFolder() {
         return this.basePath
                 + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("modelPackage").replaceAll("[.]", "/"); //"/com/example/demo/model";
+                + commonAttributes.get("modelPackage").replaceAll("[.]", "/");
     }
 
-    public String controllerFileFolder(String type) {
+    public String controllerFileFolder() {
         return this.basePath
                 + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("controllerPackage").replaceAll("[.]", "/");//"/com/example/demo/controller";
+                + commonAttributes.get("controllerPackage").replaceAll("[.]", "/");
+    }
+
+    public String clientFileFolder(String type) {
+        return this.basePath
+                + commonAttributes.get("srcMainJava")
+                + commonAttributes.get("clientPackage").replaceAll("[.]", "/");
+    }
+
+    public String dbClientFileFolder(String type) {
+        return this.basePath
+                + commonAttributes.get("srcMainJava")
+                + commonAttributes.get("dbClientPackage").replaceAll("[.]", "/");
     }
 
     public Map<String, String> controllerTemplateFiles(String type) {
@@ -503,78 +546,67 @@ public class CodeGenerator {
         return word;
     }
 
-    public void generateController(List<File> files) throws IOException {
+    public Map<String, Object> generateControllerService(List<File> files) throws IOException {
         Set<String> imports = new HashSet<>();
-        Map<String, RamlOperation> paths = processPaths(ramlMap, imports);
+        List<RamlOperation> ramlOperations = prepareRamlOperations(ramlMap, imports);
 
         Map<String, Object> operations = new HashMap<>();
-        List<RamlOperation> objs = new ArrayList();
-        for (String path : paths.keySet()) {
-            //Map<String, Object> models = (Map<String, Object>) modelMap.get(modelName);
-            //RamlOperation operation = (RamlOperation) paths.get(path);
-            ObjectMapper m = new ObjectMapper();
-            objs.add(paths.get(path));
-        }
-        operations.put("operations", objs);
+        operations.put("operations", ramlOperations);
         operations.put("package", commonAttributes.get("controllerPackage"));
+
         importMap.put("Controller", properties.getProperty("controller").concat(".").concat("Controller"));
 
         operations.put("imports", processControllerImports(imports));
-        //operation.put("importPath", config.toApiImport(tag));
-        //models.put("modelPackage", properties.getProperty("model"));
         String filename = controllerFilename("controller.mustache", "APIController");
 
         File written = processTemplateToFile(operations, "controller.mustache", filename);
         files.add(written);
 
         operations.put("package", commonAttributes.get("servicePackage"));
+        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
+        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
         written = processTemplateToFile(operations, "service.mustache",
                 basePath
                         + commonAttributes.get("mvnFoldeStruc")
                         + "/" + commonAttributes.get("servicePackage").replaceAll("[.]", "/")
                         + "/APIService.java");
         files.add(written);
-
+        return operations;
     }
 
     private List<Map<String, String>> processControllerImports(Set<String> imports) {
         List<Map<String, String>> importList = new ArrayList<>();
         for (String importStr : imports) {
             Map<String, String> map = new HashMap<>();
-            map.put("import", this.importMap.get(importStr));
-            importList.add(map);
+            if (this.importMap.get(importStr) != null) {
+                map.put("import", this.importMap.get(importStr));
+                importList.add(map);
+            }
         }
 
         return importList;
     }
 
-    private Map<String, RamlOperation> processPaths(Map ramlMap, Set<String> imports) {
-        Map<String, RamlOperation> paths = new HashMap<>();
+    private List<RamlOperation> prepareRamlOperations(Map ramlMap, Set<String> imports) {
+        List<RamlOperation> ramlOperations = new ArrayList<>();
         Set<String> mapKey = ramlMap.keySet();
         for (String key : mapKey) {
             if (key.startsWith("/")) {
-                //if(ramlMap.get(key) instanceof Map){
                     Set<String> ops = ((Map)ramlMap.get(key)).keySet();
                     for (String op : ops) {
-                        paths.put(key+op, processOperation(key, op, (Map) ((Map)ramlMap.get(key)).get(op), imports));
+                        ramlOperations.add(processOperation(key, op, (Map) ((Map)ramlMap.get(key)).get(op), imports));
                     }
-                //}
-                //paths.put(key, processOperation(key, (Map) ramlMap.get(key), imports));
             }
         }
 
- /*       mapKey = paths.keySet();
-        for (String key : mapKey) {
-
-        }*/
-
-        return paths;
+        return ramlOperations;
     }
 
     private RamlOperation processOperation(String path, String op, Map map, Set<String> imports) {
         RamlOperation ramlOperation = new RamlOperation();
         ramlOperation.path = path;
         ramlOperation.httpMethod = (String) properties.get(op.toUpperCase());
+        ramlOperation.methodType = op.toUpperCase();
         ramlOperation.operationId =  camelize((String)map.get("displayName"), true);
 
         if ("PostMapping".equals(ramlOperation.httpMethod) &&
@@ -583,10 +615,22 @@ public class CodeGenerator {
         }
         checkPathParams(ramlOperation, path);
         checkQueryParams(ramlOperation, map);
+        updateHasTrue(ramlOperation);
         checkReturnTypes(ramlOperation, (Map) map.get("responses"), imports);
 
         //System.out.println(map);
         return ramlOperation;
+    }
+
+    private void updateHasTrue(RamlOperation ramlOperation) {
+        Iterator itr = ramlOperation.allParams.iterator();
+        RamlParam param = new RamlParam();
+        while (itr.hasNext()) {
+            param = (RamlParam) itr.next();
+            if (itr.hasNext()) {
+                param.hasMore = true;
+            }
+        }
     }
 
     private void checkRequestBodyForMethod(RamlOperation ramlOperation, Map body) {
@@ -595,6 +639,7 @@ public class CodeGenerator {
         ramlParam.isBodyParam = true;
         ramlParam.dataType = (String) ((Map)body.get("application/json")).get("type");
         ramlParam.paramName = camelize(ramlParam.dataType, true);
+        ramlParam.baseName = camelize(ramlParam.paramName, false);
         ramlParams.add(ramlParam);
         ramlOperation.allParams.addAll(ramlParams);
         ramlOperation.bodyParam = ramlParam;
@@ -602,14 +647,32 @@ public class CodeGenerator {
 
     private void checkReturnTypes(RamlOperation ramlOperation, Map map, Set<String> imports) {
         if (map != null && map.get("200") != null) {
-            ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("200")).get("body")).get("application/json")).get("type");
+            ramlOperation.returnType = camelize(getReturnType(map), false);
         } else if (map != null && map.get("201") != null) {
             ramlOperation.returnType = (String)((Map)((Map)((Map)map.get("201")).get("body")).get("application/json")).get("type");
         }
-
         if (ramlOperation.returnType != null) {
-            imports.add(ramlOperation.returnType);
+            imports.add(ramlOperation.returnType.replace("[]",""));
         }
+        ramlOperation.returnType = checkArray(ramlOperation.returnType);
+    }
+
+    private String getReturnType(Map map) {
+        Map bodyMap = (Map) ((Map)map.get("200")).get("body");
+        if (bodyMap.get("default") != null) {
+            return (String) bodyMap.get("default");
+        } else  if (bodyMap.get("application/json") != null) {
+            return (String)((Map)((Map)((Map)map.get("200")).get("body")).get("application/json")).get("type");
+        } else {
+            return null;
+        }
+    }
+
+    private String checkArray(String returnType) {
+        if (StringUtils.isEmpty(returnType)) {
+            return null;
+        }
+        return returnType.contains("[]") ? "List<".concat(returnType).concat(">").replace("[]", "") : returnType;
     }
 
     private void checkQueryParams(RamlOperation ramlOperation, Map queryParamMap) {
@@ -629,12 +692,12 @@ public class CodeGenerator {
             Map<String, Object> paramAttributes = (Map<String, Object>) queryParamMap.get(param);
             ramlParam.isQueryParam = true;
             ramlParam.paramName = param;
+            ramlParam.baseName = camelize(param, false);
             ramlParam.description = (String) paramAttributes.get("description");
-            ramlParam.dataType = "@RequestParam " + camelize((String) paramAttributes.get("type"), false);
+            ramlParam.dataType = camelize((String) paramAttributes.get("type"), false);
             ramlParam.required = paramAttributes.get("required") != null ? (boolean) paramAttributes.get("required") : false;
             ramlParam.minimum = String.valueOf(paramAttributes.get("minimum"));
             ramlParam.maximum = String.valueOf(paramAttributes.get("maximum"));
-            ramlParam.hasMore = true;
             params.add(ramlParam);
         }
 
@@ -653,9 +716,9 @@ public class CodeGenerator {
         while (m.find()) {
             RamlParam ramlParam = new RamlParam();
             ramlParam.paramName = m.group(1);
+            ramlParam.baseName = camelize(ramlParam.paramName, false);
             ramlParam.isPathParam = true;
-            ramlParam.dataType = "@PathVariable String";
-            ramlParam.hasMore = true;
+            ramlParam.dataType = "String";
             params.add(ramlParam);
         }
 
@@ -666,8 +729,92 @@ public class CodeGenerator {
 
     }
 
-    public void generateSupportingFiles(Map<String, String> pomAttributes) {
-        //TODO: Check for each supporting file to generate like any Util or POM
+    public void generateSupportingFiles(List<File> files, Map<String, Object> operations) throws IOException {
+        String filename = null;
+        String templateName = null;
+        Map<String, Object> muleXMLMap = parseMuleXML();
+        if (Boolean.parseBoolean(commonAttributes.get("restClient"))){
+            operations.put("package", commonAttributes.get("clientPackage"));
+            templateName = "client.mustache";
+            filename = clientFilename(templateName, "ApiClient");
 
+            populateOperationForRestClient(operations, muleXMLMap);
+        } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))){
+            templateName = "db-client.mustache";
+            operations.put("package", commonAttributes.get("dbClientPackage"));
+            filename = dbClientFilename(templateName, "DataBaseClient");
+            populateOperationforDatabaseClient(operations, muleXMLMap);
+        } else if (false){
+            //TODO: for Fixed Length Conversion
+        }
+
+        File written = processTemplateToFile(operations, templateName, filename);
+        files.add(written);
+
+        //Populate application.properties
+        createApplicationConfigFile(files, operations);
+    }
+
+    private void createApplicationConfigFile(List<File> files, Map<String, Object> operations) throws IOException {
+        String filename = appPropFilename("application-properties.mustache", "application");
+        File written = processTemplateToFile(operations, "application-properties.mustache", filename);
+        files.add(written);
+    }
+
+    private void populateOperationforDatabaseClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
+        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
+        String host = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("host");
+        String port = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("port");
+        String user = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("user");
+        String password = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("password");
+        String database = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("database");
+
+        String sql = (String)((Map)((Map)muleXMLMap.get("flow")).get("db:select")).get("db:sql");
+
+        Map<String, String> muleValuedMap = new HashMap<>();
+        muleValuedMap.put("localPort", localPort);
+        muleValuedMap.put("host", host);
+        muleValuedMap.put("dbport", port);
+        muleValuedMap.put("user", user);
+        muleValuedMap.put("password", password);
+        muleValuedMap.put("database", database);
+        muleValuedMap.put("sql", sql.substring(sql.indexOf("from")));
+
+        System.out.println(muleValuedMap);
+        operations.putAll(muleValuedMap);
+        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
+        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+    }
+
+    private void populateOperationForRestClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
+        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
+        String host = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("host");
+        String port = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
+
+        String callingHost = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("host");
+        String callingPort = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("port");
+        String protocol = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("protocol");
+        String endpoint = (String)((Map)muleXMLMap.get("http:request-config")).get("basePath");
+
+        Map<String, String> muleValuedMap = new HashMap<>();
+        muleValuedMap.put("localPort", localPort);
+        muleValuedMap.put("host", host);
+        muleValuedMap.put("port", port);
+        muleValuedMap.put("callingHost", callingHost);
+        muleValuedMap.put("callingPort", callingPort);
+        muleValuedMap.put("endpoint", endpoint);
+        muleValuedMap.put("protocol", protocol.toLowerCase());
+
+        operations.putAll(muleValuedMap);
+        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
+        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+    }
+
+    private Map<String, Object> parseMuleXML() throws IOException {
+        String xml = ApplicationUtility.readFromInputStream(commonAttributes);
+        XStream xStream = new XStream();
+        xStream.registerConverter(new MapEntryConverter());
+        xStream.alias("mule", Map.class);
+        return (Map<String, Object>) xStream.fromXML(xml);
     }
 }

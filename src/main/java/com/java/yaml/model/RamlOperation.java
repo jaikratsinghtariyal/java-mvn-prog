@@ -11,7 +11,7 @@ public class RamlOperation {
             isRestfulIndex, isRestfulShow, isRestfulCreate, isRestfulUpdate, isRestfulDestroy,
             isRestful, isDeprecated;
     public String path, testPath, operationId, returnType, httpMethod, returnBaseType,
-            returnContainer, summary, unescapedNotes, notes, baseName, defaultResponse, discriminator;
+            returnContainer, summary, unescapedNotes, notes, baseName, defaultResponse, discriminator, methodType;
     public List<Map<String, String>> consumes, produces, prioritizedContentTypes;
     public RamlParam bodyParam;
     public List<RamlParam> allParams = new ArrayList<RamlParam>();

@@ -61,6 +61,7 @@ resourceTypes:
 /products:
   type: collection
   get:
+    displayName: GetProducts
     description: override the description
     responses:
       200:
@@ -71,12 +72,16 @@ resourceTypes:
     corpResource:
       TextAboutPost: post method # post defined which will force to define the TextAboutPost parameter
   get:
+    displayName: GetServers
   post: # will require the X-Chargeback header
+    displayName: PostServers
 /queues:
   type: corpResource
   get:
+    displayName: GetQueue
 /users/{id}:
   get:
+    displayName: GetUsers
     queryParameters:
       page:
         description: Specify the page that you want to retrieve
@@ -104,6 +109,7 @@ resourceTypes:
                 type: number
 /orgs/{orgId}:
   get:
+    displayName: GetOrgs
     responses:
       200:
         body:
@@ -111,6 +117,7 @@ resourceTypes:
             type: Org
 /{sourceid}/customers/{customerid}/billpay/oneview:
   post:
+    displayName: PostOneView
     headers:
       Content-Type:
         description: Request Content-Type to take the values application/json
@@ -127,6 +134,7 @@ resourceTypes:
           type: object
     securedBy: []
   get:
+    displayName: GetOneView
     body: {}
     responses:
       "200":

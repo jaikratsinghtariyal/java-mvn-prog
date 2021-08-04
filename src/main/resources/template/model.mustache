@@ -12,6 +12,9 @@ package {{package}};
 {{#imports}}
     import {{import}};
 {{/imports}}
+{{#dbClient}}
+    import javax.persistence.*;
+{{/dbClient}}
 {{#serializableModel}}
     import java.io.Serializable;
 {{/serializableModel}}

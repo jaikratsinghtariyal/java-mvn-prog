@@ -1,0 +1,36 @@
+#%RAML 1.0
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTPS
+title: Retrieve OneView
+baseUri: www.hsbc.com
+types:
+  Employees:
+    type: object
+    properties:
+      first_name: string
+      last_name: string
+      age: integer
+      city: string
+  Person:
+    type: object
+    properties:
+      first_name: string
+      last_name: string
+      age: integer
+      city: string
+/helloWorldNew:
+  get:
+    displayName: helloMuleToSpring
+    description: override the description
+    responses:
+      200:
+        body:
+          application/json:
+            type: Employees[]
+    queryParameters:
+      lastName:
+        type: string
+        required: false

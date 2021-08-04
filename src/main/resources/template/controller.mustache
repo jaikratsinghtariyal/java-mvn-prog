@@ -7,7 +7,7 @@ package {{package}};
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
-import com.example.demo.service.APIService;
+import com.example.java.service.APIService;
 import org.springframework.stereotype.*;
 import org.springframework.beans.factory.annotation.*;
 
@@ -24,16 +24,14 @@ public class APIController {
     @Autowired
     public APIService service;
 
-    public APIController(APIService service){
-    this.service = service;
-    }
-
     {{#operations}}
         @{{#httpMethod}}{{{httpMethod}}}("{{#path}}{{{path}}}{{/path}}"){{/httpMethod}}
-        public {{#returnType}}ResponseEntity<{{{returnType}}}> {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#bodyParam}}@RequestBody {{/bodyParam}}{{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+        public {{#returnType}}ResponseEntity<{{{returnType}}}> {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#bodyParam}}@RequestBody {{/bodyParam}}{{#allParams}}{{#isPathParam}}@PathVariable {{/isPathParam}}{{#isQueryParam}}@RequestParam(value="{{paramName}}", required={{required}}) {{/isQueryParam}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
             {{#returnType}}{{{returnType}}} obj = {{/returnType}} service.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
             {{#returnType}} return new ResponseEntity(obj, HttpStatus.OK); {{/returnType}}
         }
 
     {{/operations}}
+
+
 }
