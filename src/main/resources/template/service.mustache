@@ -85,11 +85,8 @@ public class APIService {
     @Autowired
     public MQClient client;
 
-    public String {{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{/allParams}}) {
-        Gson gson = new Gson();
-        String jsonString = gson.toJson({{#allParams}}{{paramName}}{{/allParams}});
-
-        {{#returnType}}return{{/returnType}} client.send(jsonString);
+    public String {{operationId}}() {
+        {{#returnType}}return{{/returnType}} client.receive().toString();
     }
 
     {{/mqClient}}

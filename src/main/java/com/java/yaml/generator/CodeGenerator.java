@@ -568,12 +568,13 @@ public class CodeGenerator {
 
         operations.put("imports", processControllerImports(imports));
         String filename = controllerFilename("controller.mustache", "APIController");
+        operations.putAll(getClientMapInfo());
 
         File written = processTemplateToFile(operations, "controller.mustache", filename);
         files.add(written);
 
         operations.put("package", commonAttributes.get("servicePackage"));
-        operations.putAll(getClientMapInfo());
+
         written = processTemplateToFile(operations, "service.mustache",
                 basePath
                         + commonAttributes.get("mvnFoldeStruc")
@@ -758,6 +759,11 @@ public class CodeGenerator {
             operations.put("package", commonAttributes.get("mqClientPackage"));
             filename = mqClientFilename(templateName, "MQClient");
             populateOperationforMQClient(operations, muleXMLMap);
+        } else if (Boolean.parseBoolean(commonAttributes.get("mq-recv-client"))){
+            templateName = "mq-client.mustache";
+            operations.put("package", commonAttributes.get("mqClientPackage"));
+            filename = mqClientFilename(templateName, "MQClient");
+            populateOperationforMQClient(operations, muleXMLMap);
         }
 
         File written = processTemplateToFile(operations, templateName, filename);
@@ -769,23 +775,30 @@ public class CodeGenerator {
 
     private void populateOperationforMQClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
         String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
+        Map<String, String> muleValuedMap = new HashMap<>();
+        muleValuedMap.put("localPort",  localPort);
 
         String host = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("host");
         String port = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("port");
         String queueManager = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("queueManager");
         String channel = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("channel");
-        String destination = (String) (((Map)((Map)muleXMLMap.get("flow")).get("ibm-mq:publish")).get("destination"));
         String username = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("username"));
         String password = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("password"));
 
-        Map<String, String> muleValuedMap = new HashMap<>();
-        muleValuedMap.put("localPort",  localPort);
         muleValuedMap.put("connName",  host.concat("(").concat(port).concat(")"));
         muleValuedMap.put("queueManager",  queueManager);
         muleValuedMap.put("channel",  channel);
-        muleValuedMap.put("destination",  destination);
         muleValuedMap.put("user",  username);
         muleValuedMap.put("password",  password);
+
+        if (Boolean.parseBoolean(commonAttributes.get("mq-client"))) {
+            String destination = (String) (((Map)((Map)muleXMLMap.get("flow")).get("ibm-mq:publish")).get("destination"));
+            muleValuedMap.put("destination",  destination);
+
+        } else if (Boolean.parseBoolean(commonAttributes.get("mq-recv-client"))){
+            String destination = (String) (((Map)((Map)muleXMLMap.get("flow")).get("ibm-mq:consume")).get("destination"));
+            muleValuedMap.put("destination",  destination);
+        }
 
         operations.putAll(muleValuedMap);
         operations.putAll(getClientMapInfo());
@@ -856,7 +869,8 @@ public class CodeGenerator {
         Map<String, Object> clientMap = new HashMap();
         clientMap.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
         clientMap.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
-        clientMap.put("mqClient", Boolean.parseBoolean(commonAttributes.get("mq-client")));
+        //clientMap.put("mqClient", Boolean.parseBoolean(commonAttributes.get("mq-client")));
+        clientMap.put("mqClient", Boolean.parseBoolean(commonAttributes.get("mq-recv-client")));
 
         return clientMap;
     }

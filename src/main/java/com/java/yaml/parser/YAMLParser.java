@@ -32,7 +32,8 @@ public class YAMLParser {
     private void invoke(RamlConfigurator ramlConfigurator) throws IOException {
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
        // String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");
-        String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
+        //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
+        String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RCV_RAML.yaml");
         String json = ApplicationUtility.ramlToJSON(templateText);
         // System.out.println(json);
         Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
@@ -131,10 +132,8 @@ public class YAMLParser {
         if(Boolean.parseBoolean(map.get("my-sql-database-call"))) {
             map.put("$dependencies", map.get("$dependencies").concat(",data-jpa,mysql"));
         }
-        map.put("mq-client", "true");
-        if(Boolean.parseBoolean(map.get("mq-client"))) {
-            //map.put("$dependencies", map.get("$dependencies").concat(",mq-jms-spring-boot-starter"));
-        }
+        map.put("mq-client", "false");  //Turn on for MQ Send Msg Client
+        map.put("mq-recv-client", "true"); //Turn on for MQ Recv Msg Client
 
         return map;
     }

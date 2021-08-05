@@ -1,0 +1,17 @@
+#%RAML 1.0
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTPS
+title: Retrieve OneView
+baseUri: www.hsbc.com
+/recv:
+  get:
+    displayName: recievMessage
+    description: Recieve Message
+    responses:
+      200:
+        body:
+          application/json:
+            type: string

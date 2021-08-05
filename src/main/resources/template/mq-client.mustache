@@ -6,14 +6,7 @@ package {{package}};
 {{/imports}}
 
 import org.springframework.stereotype.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.net.URI;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.JmsException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +17,9 @@ public class MQClient {
     @Autowired
     private JmsTemplate jmsTemplate;
 
-    public String send(String payload){
+    public String receive(){
         try{
-            jmsTemplate.convertAndSend("DEV.QUEUE.1", payload);
-            return "Data Sent";
+            return jmsTemplate.receiveAndConvert("DEV.QUEUE.1");
         } catch(JmsException ex){
             ex.printStackTrace();
             return "FAIL";

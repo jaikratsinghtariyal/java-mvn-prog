@@ -50,7 +50,6 @@ public class ApplicationUtility {
         return content;
     }
 
-
     public static String readFromInputStream(Map<String, String> commonAttributes)
             throws IOException {
         StringBuilder resultStringBuilder = new StringBuilder();
@@ -61,14 +60,17 @@ public class ApplicationUtility {
             file = "/Users/ja20105259/projects/anypoint-examples/querying-a-mysql-database/src/main/mule/querying-a-mysql-database.xml";
         } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))) {
             file = "/Users/ja20105259/AnypointStudio/studio-workspace/mule-to-mq/src/main/mule/mule-to-mq.xml";
+        } else if (Boolean.parseBoolean(commonAttributes.get("mq-recv-client"))) {
+            file = "/Users/ja20105259/projects/mule-mq-consumer/src/main/mule/mule-mq-consumer.xml";
         }
+
         try (BufferedReader br = new BufferedReader(new FileReader(file));) {
             String line;
             while ((line = br.readLine()) != null) {
                 resultStringBuilder.append(line).append("\n");
             }
         }
+
         return resultStringBuilder.toString();
     }
-
 }
