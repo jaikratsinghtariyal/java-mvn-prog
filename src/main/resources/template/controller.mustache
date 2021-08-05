@@ -11,6 +11,10 @@ import com.example.java.service.APIService;
 import org.springframework.stereotype.*;
 import org.springframework.beans.factory.annotation.*;
 
+{{#mqClient}}
+import org.springframework.jms.annotation.EnableJms;
+{{/mqClient}}
+
 {{^fullJavaUtil}}
     import java.util.ArrayList;
     import java.util.HashMap;
@@ -19,6 +23,9 @@ import org.springframework.beans.factory.annotation.*;
 {{/fullJavaUtil}}
 
 @RestController
+{{#mqClient}}
+@EnableJms
+{{/mqClient}}
 public class APIController {
 
     @Autowired

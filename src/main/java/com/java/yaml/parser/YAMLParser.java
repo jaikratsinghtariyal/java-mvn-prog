@@ -30,7 +30,9 @@ public class YAMLParser {
     }
 
     private void invoke(RamlConfigurator ramlConfigurator) throws IOException {
-        String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
+        //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
+       // String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");
+        String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
         String json = ApplicationUtility.ramlToJSON(templateText);
         // System.out.println(json);
         Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
@@ -113,6 +115,7 @@ public class YAMLParser {
         map.put("servicePackage", map.get("$packageName").concat(".service"));
         map.put("clientPackage", map.get("$packageName").concat(".client"));
         map.put("dbClientPackage", map.get("$packageName").concat(".client"));
+        map.put("mqClientPackage", map.get("$packageName").concat(".client"));
         map.put("configPackage", map.get("$packageName").concat(".config"));
         map.put("srcMainJava", "/src/main/java/");
         map.put("resources", "/src/main/resources/");
@@ -123,11 +126,16 @@ public class YAMLParser {
         /**
          * Only one of the below entry will be TRUE.
          */
-        map.put("restClient", "true");
+        map.put("restClient", "false");
         map.put("my-sql-database-call", "false");
         if(Boolean.parseBoolean(map.get("my-sql-database-call"))) {
             map.put("$dependencies", map.get("$dependencies").concat(",data-jpa,mysql"));
         }
+        map.put("mq-client", "true");
+        if(Boolean.parseBoolean(map.get("mq-client"))) {
+            //map.put("$dependencies", map.get("$dependencies").concat(",mq-jms-spring-boot-starter"));
+        }
+
         return map;
     }
 

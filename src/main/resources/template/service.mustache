@@ -23,6 +23,11 @@ import org.springframework.stereotype.*;
     import java.util.Map;
 {{/fullJavaUtil}}
 
+{{#mqClient}}
+import com.google.gson.Gson;
+import com.example.java.client.MQClient;
+{{/mqClient}}
+
 @Service
 {{#dbClient}}
 @Transactional
@@ -74,4 +79,19 @@ public class APIService {
     }
     {{/operations}}
     {{/dbClient}}
+
+{{#operations}}
+    {{#mqClient}}
+    @Autowired
+    public MQClient client;
+
+    public String {{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{/allParams}}) {
+        Gson gson = new Gson();
+        String jsonString = gson.toJson({{#allParams}}{{paramName}}{{/allParams}});
+
+        {{#returnType}}return{{/returnType}} client.send(jsonString);
+    }
+
+    {{/mqClient}}
+{{/operations}}
 }

@@ -5,4 +5,12 @@ spring.datasource.username={{user}}
 spring.datasource.password={{password}}
 {{/dbClient}}
 
+{{#mqClient}}
+ibm.mq.queueManager={{queueManager}}
+ibm.mq.channel={{channel}}
+ibm.mq.connName={{connName}}
+ibm.mq.user={{user}}
+ibm.mq.password={{password}}
+{{/mqClient}}
+
 server.port={{localPort}}
