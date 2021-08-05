@@ -7,23 +7,19 @@ protocols:
 title: Retrieve OneView
 baseUri: www.hsbc.com
 types:
-  Employees:
+  Payload:
     type: object
     properties:
-      first_name: string
-      last_name: string
-      age: integer
-      city: string
-/helloWorld:
-  get:
-    displayName: getEmployees
+      payload: string
+/send:
+  post:
+    displayName: sendMessage
     description: override the description
+    body:
+      application/json:
+        type: Payload
     responses:
       200:
         body:
           application/json:
-            type: Employees[]
-    queryParameters:
-      lastName:
-        type: string
-        required: true
+            type: string

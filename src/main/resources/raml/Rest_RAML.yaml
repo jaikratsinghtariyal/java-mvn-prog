@@ -8,7 +8,7 @@ title: Retrieve OneView
 baseUri: www.hsbc.com
 /helloWorld:
   get:
-    displayName: helloMuleToSpring
+    displayName: getResult
     description: override the description
     responses:
       200:
@@ -17,7 +17,7 @@ baseUri: www.hsbc.com
     queryParameters:
       first:
         type: integer
-        required: false
+        required: true
       second:
         type: integer
-        required: false
+        required: true

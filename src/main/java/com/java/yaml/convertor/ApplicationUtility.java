@@ -59,6 +59,8 @@ public class ApplicationUtility {
             file = "/Users/ja20105259/projects/anypoint-examples/hello-world/src/main/mule/hello-world.xml";
         } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))) {
             file = "/Users/ja20105259/projects/anypoint-examples/querying-a-mysql-database/src/main/mule/querying-a-mysql-database.xml";
+        } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))) {
+            file = "/Users/ja20105259/AnypointStudio/studio-workspace/mule-to-mq/src/main/mule/mule-to-mq.xml";
         }
         try (BufferedReader br = new BufferedReader(new FileReader(file));) {
             String line;

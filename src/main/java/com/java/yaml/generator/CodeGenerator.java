@@ -47,8 +47,7 @@ public class CodeGenerator {
             Map<String, Object> models = m.convertValue(model, Map.class);
             models.put("package", commonAttributes.get("modelPackage"));
             //models.put("modelPackage", properties.getProperty("model"));
-            models.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
-            models.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+            models.putAll(getClientMapInfo());
             String filename = modelFilename("model.mustache", modelName);
             importMap.put(modelName, commonAttributes.get("modelPackage").concat(".").concat(modelName));
             File written = processTemplateToFile(models, "model.mustache", filename);
@@ -157,7 +156,12 @@ public class CodeGenerator {
 
     public String dbClientFilename(String templateName, String modelName) {
         String suffix = modelTemplateFilesExtensions("mustache-db-client").get(templateName);
-        return dbClientFileFolder("db-client") + File.separator + toModelFilename(modelName) + suffix;
+        return dbClientFileFolder() + File.separator + toModelFilename(modelName) + suffix;
+    }
+
+    public String mqClientFilename(String templateName, String modelName) {
+        String suffix = modelTemplateFilesExtensions("mustache-mq-client").get(templateName);
+        return mqClientFileFolder() + File.separator + toModelFilename(modelName) + suffix;
     }
 
     public Map<String, String> modelTemplateFilesExtensions(String type) {
@@ -183,10 +187,16 @@ public class CodeGenerator {
                 + commonAttributes.get("clientPackage").replaceAll("[.]", "/");
     }
 
-    public String dbClientFileFolder(String type) {
+    public String dbClientFileFolder() {
         return this.basePath
                 + commonAttributes.get("srcMainJava")
                 + commonAttributes.get("dbClientPackage").replaceAll("[.]", "/");
+    }
+
+    public String mqClientFileFolder() {
+        return this.basePath
+                + commonAttributes.get("srcMainJava")
+                + commonAttributes.get("mqClientPackage").replaceAll("[.]", "/");
     }
 
     public Map<String, String> controllerTemplateFiles(String type) {
@@ -563,8 +573,7 @@ public class CodeGenerator {
         files.add(written);
 
         operations.put("package", commonAttributes.get("servicePackage"));
-        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
-        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+        operations.putAll(getClientMapInfo());
         written = processTemplateToFile(operations, "service.mustache",
                 basePath
                         + commonAttributes.get("mvnFoldeStruc")
@@ -611,7 +620,7 @@ public class CodeGenerator {
 
         if ("PostMapping".equals(ramlOperation.httpMethod) &&
                 ((Map)map.get("body")).size() != 0){
-            checkRequestBodyForMethod(ramlOperation, (Map) map.get("body"));
+            checkRequestBodyForMethod(ramlOperation, (Map) map.get("body"), imports);
         }
         checkPathParams(ramlOperation, path);
         checkQueryParams(ramlOperation, map);
@@ -633,11 +642,12 @@ public class CodeGenerator {
         }
     }
 
-    private void checkRequestBodyForMethod(RamlOperation ramlOperation, Map body) {
+    private void checkRequestBodyForMethod(RamlOperation ramlOperation, Map body, Set<String> imports) {
         List<RamlParam> ramlParams = new ArrayList<>();
         RamlParam ramlParam = new RamlParam();
         ramlParam.isBodyParam = true;
         ramlParam.dataType = (String) ((Map)body.get("application/json")).get("type");
+        imports.add(ramlParam.dataType);
         ramlParam.paramName = camelize(ramlParam.dataType, true);
         ramlParam.baseName = camelize(ramlParam.paramName, false);
         ramlParams.add(ramlParam);
@@ -737,15 +747,17 @@ public class CodeGenerator {
             operations.put("package", commonAttributes.get("clientPackage"));
             templateName = "client.mustache";
             filename = clientFilename(templateName, "ApiClient");
-
             populateOperationForRestClient(operations, muleXMLMap);
         } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))){
             templateName = "db-client.mustache";
             operations.put("package", commonAttributes.get("dbClientPackage"));
             filename = dbClientFilename(templateName, "DataBaseClient");
             populateOperationforDatabaseClient(operations, muleXMLMap);
-        } else if (false){
-            //TODO: for Fixed Length Conversion
+        } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))){
+            templateName = "mq-client.mustache";
+            operations.put("package", commonAttributes.get("mqClientPackage"));
+            filename = mqClientFilename(templateName, "MQClient");
+            populateOperationforMQClient(operations, muleXMLMap);
         }
 
         File written = processTemplateToFile(operations, templateName, filename);
@@ -753,6 +765,30 @@ public class CodeGenerator {
 
         //Populate application.properties
         createApplicationConfigFile(files, operations);
+    }
+
+    private void populateOperationforMQClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
+        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
+
+        String host = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("host");
+        String port = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("port");
+        String queueManager = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("queueManager");
+        String channel = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("channel");
+        String destination = (String) (((Map)((Map)muleXMLMap.get("flow")).get("ibm-mq:publish")).get("destination"));
+        String username = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("username"));
+        String password = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("password"));
+
+        Map<String, String> muleValuedMap = new HashMap<>();
+        muleValuedMap.put("localPort",  localPort);
+        muleValuedMap.put("connName",  host.concat("(").concat(port).concat(")"));
+        muleValuedMap.put("queueManager",  queueManager);
+        muleValuedMap.put("channel",  channel);
+        muleValuedMap.put("destination",  destination);
+        muleValuedMap.put("user",  username);
+        muleValuedMap.put("password",  password);
+
+        operations.putAll(muleValuedMap);
+        operations.putAll(getClientMapInfo());
     }
 
     private void createApplicationConfigFile(List<File> files, Map<String, Object> operations) throws IOException {
@@ -778,12 +814,11 @@ public class CodeGenerator {
         muleValuedMap.put("user", user);
         muleValuedMap.put("password", password);
         muleValuedMap.put("database", database);
-        muleValuedMap.put("sql", sql.substring(sql.indexOf("from")));
+        //muleValuedMap.put("sql", sql.substring(sql.indexOf("from")));
+        muleValuedMap.put("sql", sql);
 
-        System.out.println(muleValuedMap);
         operations.putAll(muleValuedMap);
-        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
-        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+        operations.putAll(getClientMapInfo());
     }
 
     private void populateOperationForRestClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
@@ -806,8 +841,7 @@ public class CodeGenerator {
         muleValuedMap.put("protocol", protocol.toLowerCase());
 
         operations.putAll(muleValuedMap);
-        operations.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
-        operations.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+        operations.putAll(getClientMapInfo());
     }
 
     private Map<String, Object> parseMuleXML() throws IOException {
@@ -816,5 +850,14 @@ public class CodeGenerator {
         xStream.registerConverter(new MapEntryConverter());
         xStream.alias("mule", Map.class);
         return (Map<String, Object>) xStream.fromXML(xml);
+    }
+
+    private Map<String, Object> getClientMapInfo(){
+        Map<String, Object> clientMap = new HashMap();
+        clientMap.put("restClient", Boolean.parseBoolean(commonAttributes.get("restClient")));
+        clientMap.put("dbClient", Boolean.parseBoolean(commonAttributes.get("my-sql-database-call")));
+        clientMap.put("mqClient", Boolean.parseBoolean(commonAttributes.get("mq-client")));
+
+        return clientMap;
     }
 }
