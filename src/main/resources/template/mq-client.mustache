@@ -19,7 +19,7 @@ public class MQClient {
 
     public String receive(){
         try{
-            return jmsTemplate.receiveAndConvert("{{destination}}");
+            return jmsTemplate.receiveAndConvert("{{destination}}").toString();
         } catch(JmsException ex){
             ex.printStackTrace();
             return "FAIL";
