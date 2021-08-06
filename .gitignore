@@ -9,5 +9,5 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 .idea
-java-man-prog.iml
+java-mvn-prog.iml
 .DS_Store
