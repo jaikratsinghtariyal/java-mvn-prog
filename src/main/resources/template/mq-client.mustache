@@ -19,7 +19,7 @@ public class MQClient {
 
     public String receive(){
         try{
-            return jmsTemplate.receiveAndConvert("DEV.QUEUE.1");
+            return jmsTemplate.receiveAndConvert("{{destination}}");
         } catch(JmsException ex){
             ex.printStackTrace();
             return "FAIL";
