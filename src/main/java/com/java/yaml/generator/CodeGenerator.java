@@ -1,12 +1,12 @@
 package com.java.yaml.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.java.yaml.convertor.ApplicationUtility;
-import com.java.yaml.convertor.MapEntryConverter;
+import com.java.yaml.convertors.SpringBootConvertor;
+import com.java.yaml.factory.ConvertorFactory;
 import com.java.yaml.model.*;
+import com.java.yaml.parser.MuleXMLParser;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
-import com.thoughtworks.xstream.XStream;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -48,7 +48,7 @@ public class CodeGenerator {
             models.put("package", commonAttributes.get("modelPackage"));
             //models.put("modelPackage", properties.getProperty("model"));
             models.putAll(getClientMapInfo());
-            String filename = modelFilename("model.mustache", modelName);
+            String filename = javaClassFilename(modelName, "modelPackage");
             importMap.put(modelName, commonAttributes.get("modelPackage").concat(".").concat(modelName));
             File written = processTemplateToFile(models, "model.mustache", filename);
             files.add(written);
@@ -129,19 +129,12 @@ public class CodeGenerator {
         return name;
     }
 
-    public String modelFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFilesExtensions("mustacheModel").get(templateName);
-        return modelFileFolder() + File.separator + initialCaps(modelName) + suffix;
+    public String javaClassFilename(String modelName, String packageName) {
+        return getFileFolder(packageName) + File.separator + initialCaps(modelName) + ".java";
     }
 
-    public String appPropFilename(String templateName, String fileName) {
-        String suffix = modelTemplateFilesExtensions("application-properties").get(templateName);
-        return resourcesFileFolder() + fileName + suffix;
-    }
-
-    public String controllerFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFilesExtensions("mustacheController").get(templateName);
-        return controllerFileFolder() + File.separator + toModelFilename(modelName) + suffix;
+    public String appPropFilename(String fileName) {
+        return resourcesFileFolder() + fileName + ".properties";
     }
 
     public String resourcesFileFolder() {
@@ -149,62 +142,10 @@ public class CodeGenerator {
                 + commonAttributes.get("resources");
     }
 
-    public String clientFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFilesExtensions("mustacheclient").get(templateName);
-        return clientFileFolder("client") + File.separator + toModelFilename(modelName) + suffix;
-    }
-
-    public String dbClientFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFilesExtensions("mustache-db-client").get(templateName);
-        return dbClientFileFolder() + File.separator + toModelFilename(modelName) + suffix;
-    }
-
-    public String mqClientFilename(String templateName, String modelName) {
-        String suffix = modelTemplateFilesExtensions("mustache-mq-client").get(templateName);
-        return mqClientFileFolder() + File.separator + toModelFilename(modelName) + suffix;
-    }
-
-    public Map<String, String> modelTemplateFilesExtensions(String type) {
-        String[] array = properties.getProperty(type).split(",");
-        return Collections.singletonMap(array[0], array[1]);
-    }
-
-    public String modelFileFolder() {
+    public String getFileFolder(String packageName) {
         return this.basePath
                 + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("modelPackage").replaceAll("[.]", "/");
-    }
-
-    public String controllerFileFolder() {
-        return this.basePath
-                + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("controllerPackage").replaceAll("[.]", "/");
-    }
-
-    public String clientFileFolder(String type) {
-        return this.basePath
-                + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("clientPackage").replaceAll("[.]", "/");
-    }
-
-    public String dbClientFileFolder() {
-        return this.basePath
-                + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("dbClientPackage").replaceAll("[.]", "/");
-    }
-
-    public String mqClientFileFolder() {
-        return this.basePath
-                + commonAttributes.get("srcMainJava")
-                + commonAttributes.get("mqClientPackage").replaceAll("[.]", "/");
-    }
-
-    public Map<String, String> controllerTemplateFiles(String type) {
-        return Collections.singletonMap(properties.getProperty(type), ".java");
-    }
-
-    public String toModelFilename(String name) {
-        return initialCaps(name);
+                + commonAttributes.get(packageName).replaceAll("[.]", "/");
     }
 
     public String initialCaps(String name) {
@@ -567,7 +508,7 @@ public class CodeGenerator {
         importMap.put("Controller", properties.getProperty("controller").concat(".").concat("Controller"));
 
         operations.put("imports", processControllerImports(imports));
-        String filename = controllerFilename("controller.mustache", "APIController");
+        String filename = javaClassFilename("APIController", "controllerPackage");
 
         File written = processTemplateToFile(operations, "controller.mustache", filename);
         files.add(written);
@@ -742,23 +683,32 @@ public class CodeGenerator {
     public void generateSupportingFiles(List<File> files, Map<String, Object> operations) throws IOException {
         String filename = null;
         String templateName = null;
-        Map<String, Object> muleXMLMap = parseMuleXML();
+        Map<String, Object> muleXMLMap = new MuleXMLParser().parseMuleXML(commonAttributes);
+        ConvertorFactory factory = new ConvertorFactory();
+        String convertor = null;
+
         if (Boolean.parseBoolean(commonAttributes.get("restClient"))){
             operations.put("package", commonAttributes.get("clientPackage"));
             templateName = "client.mustache";
-            filename = clientFilename(templateName, "ApiClient");
-            populateOperationForRestClient(operations, muleXMLMap);
+            filename = javaClassFilename("ApiClient", "clientPackage");
+            convertor = "REST";
         } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))){
             templateName = "db-client.mustache";
             operations.put("package", commonAttributes.get("dbClientPackage"));
-            filename = dbClientFilename(templateName, "DataBaseClient");
-            populateOperationforDatabaseClient(operations, muleXMLMap);
+            filename = javaClassFilename("DataBaseClient", "dbClientPackage");
+            convertor = "DATABASE";
         } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))){
             templateName = "mq-client.mustache";
             operations.put("package", commonAttributes.get("mqClientPackage"));
-            filename = mqClientFilename(templateName, "MQClient");
-            populateOperationforMQClient(operations, muleXMLMap);
+            filename = javaClassFilename("MQClient", "mqClientPackage");
+            convertor = "MQCLIENT";
         }
+
+        SpringBootConvertor obj = factory.getConvertor(convertor);
+        Map<String, String> parsedMap = obj.convertIntoMap(muleXMLMap);
+
+        operations.putAll(parsedMap);
+        operations.putAll(getClientMapInfo());
 
         File written = processTemplateToFile(operations, templateName, filename);
         files.add(written);
@@ -767,89 +717,10 @@ public class CodeGenerator {
         createApplicationConfigFile(files, operations);
     }
 
-    private void populateOperationforMQClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
-        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
-
-        String host = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("host");
-        String port = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("port");
-        String queueManager = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("queueManager");
-        String channel = (String) ((Map)((Map)((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("ibm-mq:connection-mode")).get("ibm-mq:client")).get("channel");
-        String destination = (String) (((Map)((Map)muleXMLMap.get("flow")).get("ibm-mq:publish")).get("destination"));
-        String username = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("username"));
-        String password = (String) (((Map)((Map)muleXMLMap.get("ibm-mq:config")).get("ibm-mq:connection")).get("password"));
-
-        Map<String, String> muleValuedMap = new HashMap<>();
-        muleValuedMap.put("localPort",  localPort);
-        muleValuedMap.put("connName",  host.concat("(").concat(port).concat(")"));
-        muleValuedMap.put("queueManager",  queueManager);
-        muleValuedMap.put("channel",  channel);
-        muleValuedMap.put("destination",  destination);
-        muleValuedMap.put("user",  username);
-        muleValuedMap.put("password",  password);
-
-        operations.putAll(muleValuedMap);
-        operations.putAll(getClientMapInfo());
-    }
-
     private void createApplicationConfigFile(List<File> files, Map<String, Object> operations) throws IOException {
-        String filename = appPropFilename("application-properties.mustache", "application");
+        String filename = appPropFilename("application");
         File written = processTemplateToFile(operations, "application-properties.mustache", filename);
         files.add(written);
-    }
-
-    private void populateOperationforDatabaseClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
-        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
-        String host = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("host");
-        String port = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("port");
-        String user = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("user");
-        String password = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("password");
-        String database = (String) ((Map)((Map)muleXMLMap.get("db:config")).get("db:my-sql-connection")).get("database");
-
-        String sql = (String)((Map)((Map)muleXMLMap.get("flow")).get("db:select")).get("db:sql");
-
-        Map<String, String> muleValuedMap = new HashMap<>();
-        muleValuedMap.put("localPort", localPort);
-        muleValuedMap.put("host", host);
-        muleValuedMap.put("dbport", port);
-        muleValuedMap.put("user", user);
-        muleValuedMap.put("password", password);
-        muleValuedMap.put("database", database);
-        //muleValuedMap.put("sql", sql.substring(sql.indexOf("from")));
-        muleValuedMap.put("sql", sql);
-
-        operations.putAll(muleValuedMap);
-        operations.putAll(getClientMapInfo());
-    }
-
-    private void populateOperationForRestClient(Map<String, Object> operations, Map<String, Object> muleXMLMap) {
-        String localPort = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
-        String host = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("host");
-        String port = (String)((Map)((Map)muleXMLMap.get("http:listener-config")).get("http:listener-connection")).get("port");
-
-        String callingHost = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("host");
-        String callingPort = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("port");
-        String protocol = (String)((Map)((Map)muleXMLMap.get("http:request-config")).get("http:request-connection")).get("protocol");
-        String endpoint = (String)((Map)muleXMLMap.get("http:request-config")).get("basePath");
-
-        Map<String, String> muleValuedMap = new HashMap<>();
-        muleValuedMap.put("localPort", localPort);
-        muleValuedMap.put("host", host);
-        muleValuedMap.put("port", port);
-        muleValuedMap.put("callingHost", callingHost);
-        muleValuedMap.put("callingPort", callingPort);
-        muleValuedMap.put("endpoint", endpoint);
-        muleValuedMap.put("protocol", protocol.toLowerCase());
-
-        operations.putAll(muleValuedMap);
-        operations.putAll(getClientMapInfo());
-    }
-
-    private Map<String, Object> parseMuleXML() throws IOException {
-        String xml = ApplicationUtility.readFromInputStream(commonAttributes);
-        XStream xStream = new XStream();
-        xStream.registerConverter(new MapEntryConverter());
-        xStream.alias("mule", Map.class);
-        return (Map<String, Object>) xStream.fromXML(xml);
     }
 
     private Map<String, Object> getClientMapInfo(){
