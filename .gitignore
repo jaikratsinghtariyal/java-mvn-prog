@@ -11,3 +11,5 @@ buildNumber.properties
 .idea/
 java-mvn-prog.iml
 LICENSE
+.DS_Store
+.idea/compiler.xml

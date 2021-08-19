@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.java.yaml.parser.YAMLParser;
+import com.java.yaml.parser.YAMLParserService;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -88,7 +88,7 @@ public class ApplicationUtility {
     }
 
     public static List<String> processInputFile() throws IOException {
-        String inputFilePath = YAMLParser.class.getResource("/input.txt").getPath();
+        String inputFilePath = YAMLParserService.class.getResource("/input.txt").getPath();
         File file = new File(inputFilePath);
 
         BufferedReader br = new BufferedReader(new FileReader(file));

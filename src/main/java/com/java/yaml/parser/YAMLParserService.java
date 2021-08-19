@@ -1,13 +1,15 @@
 package com.java.yaml.parser;
 
-import com.java.yaml.GenerateSampleProject;
+import com.java.yaml.model.Input;
+import com.java.yaml.model.RAML;
+import com.java.yaml.utility.GenerateSampleProject;
 import com.java.yaml.config.RamlConfigurator;
 import com.java.yaml.generator.CodeGenerator;
-import com.java.yaml.model.RAML;
 import com.java.yaml.utility.ApplicationUtility;
 import com.java.yaml.utility.GITOpsUtility;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,49 +19,52 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class YAMLParser {
+@Service
+public class YAMLParserService {
 
-    public static void main(String[] args) throws IOException, GitAPIException, URISyntaxException {
+    public static void main(String[] args)  { }
 
-        Map<String, String> commonAttributes = prepareCommonAttributes();
+    //private void invoke(RamlConfigurator ramlConfigurator) throws IOException, GitAPIException, URISyntaxException {
+    public void invoke(List<Input> inputs) throws IOException, GitAPIException, URISyntaxException {
 
-        GenerateSampleProject obj = new GenerateSampleProject();
-        String path = obj.createSpringBootSampleApp(commonAttributes);
+        for(Input input : inputs) {
+            Map<String, String> commonAttributes = prepareCommonAttributes(input);
 
-        RamlConfigurator ramlConfigurator = new RamlConfigurator();
-        ramlConfigurator.setBaseRepoPath(path);
-        ramlConfigurator.setCommonAttributes(commonAttributes);
+            GenerateSampleProject generateSampleProject = new GenerateSampleProject();
+            String path = generateSampleProject.createSpringBootSampleApp(commonAttributes);
 
-        new YAMLParser().invoke(ramlConfigurator);
-    }
+            RamlConfigurator ramlConfigurator = new RamlConfigurator();
+            ramlConfigurator.setBaseRepoPath(path);
+            ramlConfigurator.setCommonAttributes(commonAttributes);
 
-    private void invoke(RamlConfigurator ramlConfigurator) throws IOException, GitAPIException, URISyntaxException {
+            String gitLink = input.getMuleAPIGITRepoName();
+            String apiName = gitLink.substring(gitLink.lastIndexOf("/") + 1, gitLink.lastIndexOf("."));
+            String repoClonePath = YAMLParserService.class.getResource("/temp").getPath();
 
-        List<String> inputList = ApplicationUtility.processInputFile();
+            GITOpsUtility gitOpsUtility = new GITOpsUtility();
+            gitOpsUtility.cloneRepo(gitLink, apiName, repoClonePath);
 
-        GITOpsUtility gitOpsUtility = new GITOpsUtility();
-        /*gitOpsUtility.cloneRepo(inputList.get(0));
+            String ramlPath = repoClonePath.concat("/").concat(apiName).concat("/src/main/api/");
+            String templateText = ApplicationUtility.getResourceText(ramlPath.concat("Raml.yaml"));
 
-        //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
-        String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");
-        //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
+            String json = ApplicationUtility.ramlToJSON(templateText);
+            Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
+            RAML raml = new RAML();
+            raml.setTypes((Map) map.get("types"));
 
-        String json = ApplicationUtility.ramlToJSON(templateText);
-        Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
-        RAML raml = new RAML();
-        raml.setTypes((Map) map.get("types"));
+            List<File> files = new ArrayList<>();
+            CodeGenerator obj = new CodeGenerator(raml, ramlConfigurator.getProperties(),
+                    map, ramlConfigurator.getBaseRepoPath(), ramlConfigurator.getCommonAttributes());
 
-        List<File> files = new ArrayList<>();
-        CodeGenerator obj = new CodeGenerator(raml, ramlConfigurator.getProperties(),
-                map, ramlConfigurator.getBaseRepoPath(), ramlConfigurator.getCommonAttributes());
+            generateModels(files, obj);
+            Map<String, Object> operation = generateControllerService(files, obj);
+            //generateService(files, obj);
+            generateSupportingFiles(files, obj, operation);
 
-        generateModels(files, obj);
-        Map<String, Object> operation = generateControllerService(files, obj);
-        //generateService(files, obj);
-        generateSupportingFiles(files, obj, operation);*/
+            //Git git = gitOpsUtility.gitInit("/Users/ja20105259/projects/mule-to-spring-boot/spring-mule-hello");
+            //gitOpsUtility.pushBranch(git);
+        }
 
-        Git git = gitOpsUtility.gitInit("/Users/ja20105259/projects/mule-to-spring-boot/spring-mule-hello");
-        gitOpsUtility.pushBranch(git);
     }
 
     private void generateSupportingFiles(List<File> files, CodeGenerator obj, Map<String, Object> operation) throws IOException {
@@ -78,11 +83,12 @@ public class YAMLParser {
         return obj.generateControllerService(files);
     }
 
-    private static Map<String, String> prepareCommonAttributes() {
+    private static Map<String, String> prepareCommonAttributes(Input input) {
         Map<String, String> map = new HashMap<>();
+        String artifactNAme = input.getNewSBArtifactName();
 
-        map.put("fileName", "spring-mule-hello.zip");
-        map.put("projectName", "spring-mule-hello");
+        map.put("fileName", artifactNAme.concat(".zip"));
+        map.put("projectName", artifactNAme);
         map.put("mvnFoldeStruc", "/src/main/java");
 
         //"https://start.spring.io/starter.zip?type=maven-project&
@@ -113,10 +119,10 @@ public class YAMLParser {
 
         map.put("$language", "java");
         map.put("$bootVersion", "2.5.3");
-        map.put("$baseDir", "spring-mule-hello");
+        map.put("$baseDir", artifactNAme);
         map.put("$groupId", "com.example.java");
-        map.put("$artifactId", "spring-mule-hello");
-        map.put("$name", "spring-mule-hello");
+        map.put("$artifactId", artifactNAme);
+        map.put("$name", artifactNAme);
         map.put("$description", "Spring Mule Hello World Program");
         map.put("$packageName", "com.example.java");
         map.put("$packaging", "jar");
@@ -139,12 +145,12 @@ public class YAMLParser {
         /**
          * Only one of the below entry will be TRUE.
          */
-        map.put("restClient", "false");
-        map.put("my-sql-database-call", "true");
+        map.put("restClient", input.getMuleAPIFlavour().equals("Rest") ? "true" : "false");
+        map.put("my-sql-database-call", input.getMuleAPIFlavour().equals("Database") ? "true" : "false");
         if (Boolean.parseBoolean(map.get("my-sql-database-call"))) {
             map.put("$dependencies", map.get("$dependencies").concat(",data-jpa,mysql"));
         }
-        map.put("mq-client", "false");
+        map.put("mq-client", input.getMuleAPIFlavour().equals("MQ") ? "true" : "false");
 
         return map;
     }
