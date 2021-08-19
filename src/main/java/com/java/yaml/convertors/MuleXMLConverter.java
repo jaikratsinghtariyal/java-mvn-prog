@@ -1,4 +1,4 @@
-package com.java.yaml.convertor;
+package com.java.yaml.convertors;
 
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class MapEntryConverter implements Converter {
+public class MuleXMLConverter implements Converter {
 
     public boolean canConvert(Class clazz) {
         return AbstractMap.class.isAssignableFrom(clazz);

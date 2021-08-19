@@ -1,13 +1,19 @@
 package com.java.yaml.parser;
 
-import com.java.yaml.GenerateSampleProject;
 import com.java.yaml.config.RamlConfigurator;
 import com.java.yaml.convertor.ApplicationUtility;
 import com.java.yaml.generator.CodeGenerator;
 import com.java.yaml.model.RAML;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.PushCommand;
+import org.eclipse.jgit.api.RemoteAddCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,9 +21,12 @@ import java.util.Map;
 
 public class YAMLParser {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, GitAPIException, URISyntaxException {
 
-        Map<String, String> commonAttributes = prepareCommonAttributes();
+        Git git = cloneRepo(args);
+        createNewBranch(args, git);
+        pushNewBranch(args, git);
+       /* Map<String, String> commonAttributes = prepareCommonAttributes();
 
         GenerateSampleProject obj = new GenerateSampleProject();
         String path = obj.createSpringBootSampleApp(commonAttributes);
@@ -26,10 +35,70 @@ public class YAMLParser {
         ramlConfigurator.setBaseRepoPath(path);
         ramlConfigurator.setCommonAttributes(commonAttributes);
 
-        new YAMLParser().invoke(ramlConfigurator);
+        new YAMLParser().invoke(ramlConfigurator);*/
+    }
+
+    private static void pushNewBranch(String[] args, Git git) throws GitAPIException, URISyntaxException {
+
+        // add remote repo:
+        RemoteAddCommand remoteAddCommand = git.remoteAdd();
+        remoteAddCommand.setName("origin");
+        remoteAddCommand.setUri(new URIish("https://github.com/tektutorial/mule-hello-world.git"));
+        // you can add more settings here if needed
+        remoteAddCommand.call();
+
+        // push to remote:
+        PushCommand pushCommand = git.push();
+        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("username", "password"));
+        // you can add more settings here if needed
+        pushCommand.call();
+    }
+
+    private static void createNewBranch(String[] args, Git git) throws GitAPIException {
+        git.checkout()
+                .setCreateBranch(true)
+                .setName("new-branch")
+                .call();
+    }
+
+    private static Git cloneRepo(String[] args) throws GitAPIException {
+
+        String gitLink = "https://github.com/tektutorial/mule-hello-world.git";
+        String apiName = gitLink.substring(gitLink.lastIndexOf("/") + 1, gitLink.lastIndexOf("."));
+
+        File file = new File("/Users/ja20105259/projects/mule-sample-repos/".concat(apiName));
+        deleteDirectory(file);
+
+        //For Default Branch
+        Git git = Git.cloneRepository()
+                .setURI(gitLink)
+                .setDirectory(file)
+                .call();
+
+        //For specific Branch
+        /*Git.cloneRepository()
+                .setURI("https://github.com/eclipse/jgit.git")
+                .setDirectory(new File("/path/to/targetdirectory"))
+                .setBranchesToClone(Arrays.asList("refs/heads/specific-branch"))
+                .setBranch("refs/heads/specific-branch")
+                .call();*/
+        return git;
+    }
+
+    public static void deleteDirectory(File file) {
+        if (file.listFiles() == null){
+            return;
+        }
+        for (File subfile : file.listFiles()) {
+            if (subfile.isDirectory()) {
+                deleteDirectory(subfile);
+            }
+            subfile.delete();
+        }
     }
 
     private void invoke(RamlConfigurator ramlConfigurator) throws IOException {
+
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
         String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
@@ -128,7 +197,7 @@ public class YAMLParser {
          */
         map.put("restClient", "false");
         map.put("my-sql-database-call", "true");
-        if(Boolean.parseBoolean(map.get("my-sql-database-call"))) {
+        if (Boolean.parseBoolean(map.get("my-sql-database-call"))) {
             map.put("$dependencies", map.get("$dependencies").concat(",data-jpa,mysql"));
         }
         map.put("mq-client", "false");

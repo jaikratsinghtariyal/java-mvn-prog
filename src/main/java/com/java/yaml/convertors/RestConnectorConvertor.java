@@ -3,7 +3,7 @@ package com.java.yaml.convertors;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RestClientConvertor implements SpringBootConvertor {
+public class RestConnectorConvertor implements SpringBootConvertor {
 
     @Override
     public Map<String, String> convertIntoMap(Map<String, Object> muleXMLMap) {
