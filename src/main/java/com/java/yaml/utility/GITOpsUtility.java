@@ -13,17 +13,13 @@ import java.net.URISyntaxException;
 public class GITOpsUtility {
     public void pushNewBranch(Git git) throws GitAPIException, URISyntaxException {
 
-        // add remote repo:
         RemoteAddCommand remoteAddCommand = git.remoteAdd();
         remoteAddCommand.setName("origin");
         remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/mule-hello-world.git"));
-        // you can add more settings here if needed
         remoteAddCommand.call();
 
-        // push to remote:
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("tektutorialfeedback@gmail.com", "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"));
-        // you can add more settings here if needed
         pushCommand.call();
     }
 
