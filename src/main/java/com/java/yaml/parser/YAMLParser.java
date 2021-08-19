@@ -2,17 +2,16 @@ package com.java.yaml.parser;
 
 import com.java.yaml.GenerateSampleProject;
 import com.java.yaml.config.RamlConfigurator;
-import com.java.yaml.utility.ApplicationUtility;
 import com.java.yaml.generator.CodeGenerator;
 import com.java.yaml.model.RAML;
+import com.java.yaml.utility.ApplicationUtility;
 import com.java.yaml.utility.GITOpsUtility;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
-import java.io.*;
-import java.net.URI;
+import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,52 +30,36 @@ public class YAMLParser {
         ramlConfigurator.setBaseRepoPath(path);
         ramlConfigurator.setCommonAttributes(commonAttributes);
 
-        List<String> inputList = processInputFile();
-
-        //new YAMLParser().invoke(ramlConfigurator);
-    }
-
-    private static List<String> processInputFile() throws IOException {
-        String inputFilePath = YAMLParser.class.getResource("/input.txt").getPath();
-        File file = new File(inputFilePath);
-
-        BufferedReader br = new BufferedReader(new FileReader(file));
-        br.readLine();
-
-        String st;
-        List<String> inputList = new ArrayList<>();
-        while ((st = br.readLine()) != null) {
-            inputList.add(st);
-        }
-
-        return inputList;
+        new YAMLParser().invoke(ramlConfigurator);
     }
 
     private void invoke(RamlConfigurator ramlConfigurator) throws IOException, GitAPIException, URISyntaxException {
 
-        GITOpsUtility gitOpsUtility = new GITOpsUtility();
+        List<String> inputList = ApplicationUtility.processInputFile();
 
-        Git git = gitOpsUtility.cloneRepo();
-        gitOpsUtility.createNewBranch(git);
-        gitOpsUtility.pushNewBranch(git);
+        GITOpsUtility gitOpsUtility = new GITOpsUtility();
+        /*gitOpsUtility.cloneRepo(inputList.get(0));
 
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
         String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MQ_RAML.yaml");
+
         String json = ApplicationUtility.ramlToJSON(templateText);
-        // System.out.println(json);
         Map<String, ? extends Object> map = ApplicationUtility.jsonToMap(json);
         RAML raml = new RAML();
         raml.setTypes((Map) map.get("types"));
 
-        List<File> files = new ArrayList<File>();
+        List<File> files = new ArrayList<>();
         CodeGenerator obj = new CodeGenerator(raml, ramlConfigurator.getProperties(),
                 map, ramlConfigurator.getBaseRepoPath(), ramlConfigurator.getCommonAttributes());
 
         generateModels(files, obj);
         Map<String, Object> operation = generateControllerService(files, obj);
         //generateService(files, obj);
-        generateSupportingFiles(files, obj, operation);
+        generateSupportingFiles(files, obj, operation);*/
+
+        Git git = gitOpsUtility.gitInit("/Users/ja20105259/projects/mule-to-spring-boot/spring-mule-hello");
+        gitOpsUtility.pushBranch(git);
     }
 
     private void generateSupportingFiles(List<File> files, CodeGenerator obj, Map<String, Object> operation) throws IOException {
