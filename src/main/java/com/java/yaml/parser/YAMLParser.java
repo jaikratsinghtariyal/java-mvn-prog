@@ -1,19 +1,18 @@
 package com.java.yaml.parser;
 
+import com.java.yaml.GenerateSampleProject;
 import com.java.yaml.config.RamlConfigurator;
-import com.java.yaml.convertor.ApplicationUtility;
+import com.java.yaml.utility.ApplicationUtility;
 import com.java.yaml.generator.CodeGenerator;
 import com.java.yaml.model.RAML;
+import com.java.yaml.utility.GITOpsUtility;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PushCommand;
-import org.eclipse.jgit.api.RemoteAddCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +22,7 @@ public class YAMLParser {
 
     public static void main(String[] args) throws IOException, GitAPIException, URISyntaxException {
 
-        Git git = cloneRepo(args);
-        createNewBranch(args, git);
-        pushNewBranch(args, git);
-       /* Map<String, String> commonAttributes = prepareCommonAttributes();
+        Map<String, String> commonAttributes = prepareCommonAttributes();
 
         GenerateSampleProject obj = new GenerateSampleProject();
         String path = obj.createSpringBootSampleApp(commonAttributes);
@@ -35,69 +31,34 @@ public class YAMLParser {
         ramlConfigurator.setBaseRepoPath(path);
         ramlConfigurator.setCommonAttributes(commonAttributes);
 
-        new YAMLParser().invoke(ramlConfigurator);*/
+        List<String> inputList = processInputFile();
+
+        //new YAMLParser().invoke(ramlConfigurator);
     }
 
-    private static void pushNewBranch(String[] args, Git git) throws GitAPIException, URISyntaxException {
+    private static List<String> processInputFile() throws IOException {
+        String inputFilePath = YAMLParser.class.getResource("/input.txt").getPath();
+        File file = new File(inputFilePath);
 
-        // add remote repo:
-        RemoteAddCommand remoteAddCommand = git.remoteAdd();
-        remoteAddCommand.setName("origin");
-        remoteAddCommand.setUri(new URIish("https://github.com/tektutorial/mule-hello-world.git"));
-        // you can add more settings here if needed
-        remoteAddCommand.call();
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        br.readLine();
 
-        // push to remote:
-        PushCommand pushCommand = git.push();
-        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("username", "password"));
-        // you can add more settings here if needed
-        pushCommand.call();
-    }
-
-    private static void createNewBranch(String[] args, Git git) throws GitAPIException {
-        git.checkout()
-                .setCreateBranch(true)
-                .setName("new-branch")
-                .call();
-    }
-
-    private static Git cloneRepo(String[] args) throws GitAPIException {
-
-        String gitLink = "https://github.com/tektutorial/mule-hello-world.git";
-        String apiName = gitLink.substring(gitLink.lastIndexOf("/") + 1, gitLink.lastIndexOf("."));
-
-        File file = new File("/Users/ja20105259/projects/mule-sample-repos/".concat(apiName));
-        deleteDirectory(file);
-
-        //For Default Branch
-        Git git = Git.cloneRepository()
-                .setURI(gitLink)
-                .setDirectory(file)
-                .call();
-
-        //For specific Branch
-        /*Git.cloneRepository()
-                .setURI("https://github.com/eclipse/jgit.git")
-                .setDirectory(new File("/path/to/targetdirectory"))
-                .setBranchesToClone(Arrays.asList("refs/heads/specific-branch"))
-                .setBranch("refs/heads/specific-branch")
-                .call();*/
-        return git;
-    }
-
-    public static void deleteDirectory(File file) {
-        if (file.listFiles() == null){
-            return;
+        String st;
+        List<String> inputList = new ArrayList<>();
+        while ((st = br.readLine()) != null) {
+            inputList.add(st);
         }
-        for (File subfile : file.listFiles()) {
-            if (subfile.isDirectory()) {
-                deleteDirectory(subfile);
-            }
-            subfile.delete();
-        }
+
+        return inputList;
     }
 
-    private void invoke(RamlConfigurator ramlConfigurator) throws IOException {
+    private void invoke(RamlConfigurator ramlConfigurator) throws IOException, GitAPIException, URISyntaxException {
+
+        GITOpsUtility gitOpsUtility = new GITOpsUtility();
+
+        Git git = gitOpsUtility.cloneRepo();
+        gitOpsUtility.createNewBranch(git);
+        gitOpsUtility.pushNewBranch(git);
 
         //String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/Rest_RAML.yaml");
         String templateText = ApplicationUtility.getResourceText("src/main/resources/raml/MySQL_RAML.yaml");

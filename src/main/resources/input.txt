@@ -1,0 +1,2 @@
+GITRepoName, NewBranchName, MuleAPIFlavour
+https://github.com/jaikratsinghtariyal/mule-hello-world.git,new-mule-branch,DATABASE

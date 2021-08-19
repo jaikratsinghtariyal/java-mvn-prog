@@ -1,6 +1,6 @@
 package com.java.yaml.parser;
 
-import com.java.yaml.convertor.ApplicationUtility;
+import com.java.yaml.utility.ApplicationUtility;
 import com.java.yaml.convertors.MuleXMLConverter;
 import com.thoughtworks.xstream.XStream;
 

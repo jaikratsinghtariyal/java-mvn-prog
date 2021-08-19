@@ -1,4 +1,4 @@
-package com.java.yaml.convertor;
+package com.java.yaml.utility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -71,4 +72,15 @@ public class ApplicationUtility {
         return resultStringBuilder.toString();
     }
 
+    public static void deleteDirectory(File file) {
+        if (file.listFiles() == null){
+            return;
+        }
+        for (File subfile : file.listFiles()) {
+            if (subfile.isDirectory()) {
+                deleteDirectory(subfile);
+            }
+            subfile.delete();
+        }
+    }
 }
