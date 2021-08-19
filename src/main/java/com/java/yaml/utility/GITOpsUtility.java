@@ -25,9 +25,7 @@ public class GITOpsUtility {
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("tektutorialfeedback@gmail.com", "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"));
         pushCommand.call();*/
-
-
-
+        
        /* StoredConfig config = git.getRepository().getConfig();
         config.setString("remote", "origin", "url", "https://github.com/jaikratsinghtariyal/spring-mule-hello.git");
         //config.setString("remote", "origin", "spring-mule-hello", "git@github.com:jaikratsinghtariyal/spring-mule-hello.git");
