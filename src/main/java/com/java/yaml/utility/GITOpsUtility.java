@@ -51,7 +51,7 @@ public class GITOpsUtility {
         // git push -u origin master
         PushCommand pushCommand = git.push().setForce(true);
         pushCommand.add("main");
-        pushCommand.setRemote("origin");
+        //pushCommand.setRemote("origin");
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("tektutorialfeedback@gmail.com", "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"));
 
         pushCommand.call();
@@ -67,8 +67,7 @@ public class GITOpsUtility {
     public Git gitInit(String path) throws GitAPIException {
         //File dir = File.createTempFile("gitinit", ".test");
         File dir = new File(path);
-        InitCommand init = Git.init();
-        return init
+        return Git.init()
                 .setDirectory(dir)
                 .call();
     }
