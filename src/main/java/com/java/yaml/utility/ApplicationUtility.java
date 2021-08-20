@@ -1,16 +1,20 @@
-package com.java.yaml.convertor;
+package com.java.yaml.utility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.java.yaml.parser.YAMLParserService;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -71,4 +75,31 @@ public class ApplicationUtility {
         return resultStringBuilder.toString();
     }
 
+    public static void deleteDirectory(File file) {
+        if (file.listFiles() == null){
+            return;
+        }
+        for (File subfile : file.listFiles()) {
+            if (subfile.isDirectory()) {
+                deleteDirectory(subfile);
+            }
+            subfile.delete();
+        }
+    }
+
+    public static List<String> processInputFile() throws IOException {
+        String inputFilePath = YAMLParserService.class.getResource("/input.txt").getPath();
+        File file = new File(inputFilePath);
+
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        br.readLine();
+
+        String st;
+        List<String> inputList = new ArrayList<>();
+        while ((st = br.readLine()) != null) {
+            inputList.add(st);
+        }
+
+        return inputList;
+    }
 }

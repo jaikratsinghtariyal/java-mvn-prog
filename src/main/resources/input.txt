@@ -1,0 +1,3 @@
+MuleAPIGITRepoName, NewSBArtifactName, MuleAPIFlavour
+https://github.com/jaikratsinghtariyal/mule-hello-world.git,spring-mule-hello-rest,Rest
+https://github.com/jaikratsinghtariyal/querying-a-mysql-database.git,spring-mule-hello-db,Database
