@@ -16,18 +16,32 @@ import java.net.URISyntaxException;
 
 public class GITOpsUtility {
 
-    public void pushBranch(Git git) throws GitAPIException, URISyntaxException, IOException {
+    String downloadNExtractDirectory = GenerateSampleProject.class.getResource("/new-sb-repo/").getPath();
+
+    public void pushBranch(Git git, String newSBArtifactName) throws GitAPIException, URISyntaxException, IOException {
 
         /**
          *   Code for checkin in existing repo.
+         *
+         *   [branch "master"]
+         * 	remote = origin
+         * 	merge = refs/heads/master
+         *
          */
 
-        /*RemoteAddCommand remoteAddCommand = git.remoteAdd();
+       /* RemoteAddCommand remoteAddCommand = git.remoteAdd();
         remoteAddCommand.setName("origin");
-        remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/spring-mule-hello.git"));
+        remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/spring-mule-hello-rest.git"));
+        //remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/".concat(newSBArtifactName).concat(".git")));
         remoteAddCommand.call();
 
+        git.add()
+                .addFilepattern(".")
+                .call();
+
         PushCommand pushCommand = git.push();
+        pushCommand.add("master");
+        pushCommand.setRemote("origin");
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("jaikratsinghtariyal", "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"));
         pushCommand.call();*/
 
@@ -39,10 +53,10 @@ public class GITOpsUtility {
         //config.setString("remote", "origin", "spring-mule-hello", "git@github.com:jaikratsinghtariyal/spring-mule-hello.git");
         config.save();*/
 
-        /*RemoteAddCommand remoteAddCommand = git.remoteAdd();
+        RemoteAddCommand remoteAddCommand = git.remoteAdd();
         remoteAddCommand.setName("origin");
-        remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/spring-mule-hello.git"));
-        remoteAddCommand.call();*/
+        remoteAddCommand.setUri(new URIish("https://github.com/jaikratsinghtariyal/".concat(newSBArtifactName).concat(".git")));
+        remoteAddCommand.call();
 
         git.add()
                 .addFilepattern(".")
@@ -53,35 +67,30 @@ public class GITOpsUtility {
                 .setAuthor("Jaikrat", "Jaikrat@maik.com")
                 .call();
 
-        // git push -u origin master
         PushCommand pushCommand = git.push().setForce(true);
-        pushCommand.add("master");
+        pushCommand.add("main");
         pushCommand.setRemote("origin");
-        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("jaikratsinghtariyal", "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"));
+        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("jaikratsinghtariyal", "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"));
 
         pushCommand.call();
     }
 
-    public void createNewBranch(Git git) throws GitAPIException {
+    public void createNewBranch(Git git, String newBranchName) throws GitAPIException {
         git.checkout()
                 .setCreateBranch(true)
-                .setName("new-branch")
+                .setName(newBranchName)
                 .call();
     }
 
     public Git gitInit(String path) throws GitAPIException {
-        //File dir = File.createTempFile("gitinit", ".test");
-        File dir = new File(path);
         return Git.init()
-                .setDirectory(dir)
+                .setDirectory(new File(downloadNExtractDirectory.concat(path)))
                 .call();
     }
 
     public void cloneRepo(String gitLink, String apiName, String repoClonePath) throws GitAPIException {
-        //File file = new File("/Users/ja20105259/projects/mule-sample-repos/".concat(apiName));
         File file = new File(repoClonePath.concat("/").concat(apiName));
         ApplicationUtility.deleteDirectory(file);
-
         /**
          * For Default Branch
          */

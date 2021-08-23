@@ -22,7 +22,23 @@ import java.util.Map;
 @Service
 public class YAMLParserService {
 
-    public static void main(String[] args)  { }
+    public static void main(String[] args) throws GitAPIException, IOException, URISyntaxException {
+        Input input = new Input();
+        input.setMuleAPIGITRepoName("https://github.com/jaikratsinghtariyal/mule-hello-world.git");
+        input.setNewSBArtifactName("spring-mule-hello-rest");
+        input.setMuleAPIFlavour("Rest");
+
+        List<Input> list = new ArrayList<>();
+        list.add(input);
+
+        /*input = new Input();
+        input.setMuleAPIGITRepoName("https://github.com/jaikratsinghtariyal/querying-a-mysql-database.git");
+        input.setNewSBArtifactName("spring-mule-hello-db");
+        input.setMuleAPIFlavour("Database");
+        list.add(input);*/
+
+        new YAMLParserService().invoke(list);
+    }
 
     //private void invoke(RamlConfigurator ramlConfigurator) throws IOException, GitAPIException, URISyntaxException {
     public void invoke(List<Input> inputs) throws IOException, GitAPIException, URISyntaxException {
@@ -39,7 +55,7 @@ public class YAMLParserService {
 
             String gitLink = input.getMuleAPIGITRepoName();
             String apiName = gitLink.substring(gitLink.lastIndexOf("/") + 1, gitLink.lastIndexOf("."));
-            String repoClonePath = YAMLParserService.class.getResource("/temp").getPath();
+            String repoClonePath = YAMLParserService.class.getResource("/cloned-repo").getPath();
 
             GITOpsUtility gitOpsUtility = new GITOpsUtility();
             gitOpsUtility.cloneRepo(gitLink, apiName, repoClonePath);
@@ -59,16 +75,19 @@ public class YAMLParserService {
             generateModels(files, obj);
             Map<String, Object> operation = generateControllerService(files, obj);
             //generateService(files, obj);
-            generateSupportingFiles(files, obj, operation);
+            generateSupportingFiles(files, obj, operation, repoClonePath.concat("/").concat(apiName));
 
-            //Git git = gitOpsUtility.gitInit("/Users/ja20105259/projects/mule-to-spring-boot/spring-mule-hello");
-            //gitOpsUtility.pushBranch(git);
+            /**
+             * Push new Repo into GIT.
+             */
+            Git git = gitOpsUtility.gitInit(input.getNewSBArtifactName());
+            //gitOpsUtility.createNewBranch(git, input.getNewSBArtifactName());
+            gitOpsUtility.pushBranch(git, input.getNewSBArtifactName());
         }
-
     }
 
-    private void generateSupportingFiles(List<File> files, CodeGenerator obj, Map<String, Object> operation) throws IOException {
-        obj.generateSupportingFiles(files, operation);
+    private void generateSupportingFiles(List<File> files, CodeGenerator obj, Map<String, Object> operation, String repoClonePath) throws IOException {
+        obj.generateSupportingFiles(files, operation, repoClonePath);
     }
 
     private void generateModels(List<File> files, CodeGenerator obj) throws IOException {

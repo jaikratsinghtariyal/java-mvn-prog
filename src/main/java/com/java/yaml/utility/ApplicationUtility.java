@@ -55,18 +55,18 @@ public class ApplicationUtility {
     }
 
 
-    public static String readFromInputStream(Map<String, String> commonAttributes)
+    public static String readFromInputStream(Map<String, String> commonAttributes, String repoClonePath)
             throws IOException {
         StringBuilder resultStringBuilder = new StringBuilder();
-        String file = null;
-        if (Boolean.parseBoolean(commonAttributes.get("restClient"))) {
-            file = "/Users/ja20105259/projects/anypoint-examples/hello-world/src/main/mule/hello-world.xml";
+        String filePath = repoClonePath.concat("/src/main/mule/mule.xml");
+        /*if (Boolean.parseBoolean(commonAttributes.get("restClient"))) {
+            filePath = "/Users/ja20105259/projects/anypoint-examples/hello-world/src/main/mule/hello-world.xml";
         } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))) {
-            file = "/Users/ja20105259/projects/anypoint-examples/querying-a-mysql-database/src/main/mule/querying-a-mysql-database.xml";
+            filePath = "/Users/ja20105259/projects/anypoint-examples/querying-a-mysql-database/src/main/mule/querying-a-mysql-database.xml";
         } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))) {
-            file = "/Users/ja20105259/AnypointStudio/studio-workspace/mule-to-mq/src/main/mule/mule-to-mq.xml";
-        }
-        try (BufferedReader br = new BufferedReader(new FileReader(file));) {
+            filePath = "/Users/ja20105259/AnypointStudio/studio-workspace/mule-to-mq/src/main/mule/mule-to-mq.xml";
+        }*/
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath));) {
             String line;
             while ((line = br.readLine()) != null) {
                 resultStringBuilder.append(line).append("\n");
@@ -85,6 +85,10 @@ public class ApplicationUtility {
             }
             subfile.delete();
         }
+    }
+
+    public static void deleteFile(File file) {
+        file.delete();
     }
 
     public static List<String> processInputFile() throws IOException {

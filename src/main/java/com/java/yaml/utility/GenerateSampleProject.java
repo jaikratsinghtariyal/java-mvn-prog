@@ -1,5 +1,6 @@
 package com.java.yaml.utility;
 
+import com.java.yaml.parser.YAMLParserService;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
@@ -10,30 +11,30 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class GenerateSampleProject {
-    String downloadPath = "/Users/ja20105259/projects/mule-to-spring-boot/";
-    String extractDirectory = "/Users/ja20105259/projects/mule-to-spring-boot";
 
-    String downloadnextractDirectory = "/Users/ja20105259/projects/mule-to-spring-boot/";
+    //String downloadNExtractDirectory = "/Users/ja20105259/projects/mule-to-spring-boot/";
+    String downloadNExtractDirectory = GenerateSampleProject.class.getResource("/new-sb-repo/").getPath();
 
     private static final int BUFFER_SIZE = 4096;
 
     public String createSpringBootSampleApp(Map<String, String> attributes) throws IOException {
         callStartSpringIO(attributes);
         unzipTheFolder(attributes);
+        ApplicationUtility.deleteFile(new File(downloadNExtractDirectory.concat(attributes.get("projectName")).concat(".zip")));
 
-        return downloadnextractDirectory.concat(attributes.get("projectName"));
+        return downloadNExtractDirectory.concat(attributes.get("projectName"));
     }
 
     private void unzipTheFolder(Map<String, String> attributes) throws IOException {
-        File destDir = new File(downloadnextractDirectory);
+        File destDir = new File(downloadNExtractDirectory);
         if (!destDir.exists()) {
             destDir.mkdir();
         }
-        ZipInputStream zipIn = new ZipInputStream(new FileInputStream(downloadnextractDirectory.concat(attributes.get("fileName"))));
+        ZipInputStream zipIn = new ZipInputStream(new FileInputStream(downloadNExtractDirectory.concat(attributes.get("fileName"))));
         ZipEntry entry = zipIn.getNextEntry();
         // iterates over entries in the zip file
         while (entry != null) {
-            String filePath = downloadnextractDirectory + File.separator + entry.getName();
+            String filePath = downloadNExtractDirectory + File.separator + entry.getName();
             if (!entry.isDirectory()) {
                 // if the entry is a file, extracts it
                 extractFile(zipIn, filePath);
@@ -68,7 +69,7 @@ public class GenerateSampleProject {
                 .build();
         Response response = client.newCall(request).execute();
 
-        FileOutputStream fos = new FileOutputStream(downloadnextractDirectory.concat(attributes.get("fileName")));
+        FileOutputStream fos = new FileOutputStream(downloadNExtractDirectory.concat(attributes.get("fileName")));
         fos.write(response.body().bytes());
         fos.close();
     }

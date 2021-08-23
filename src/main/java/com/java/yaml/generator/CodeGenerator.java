@@ -680,10 +680,10 @@ public class CodeGenerator {
 
     }
 
-    public void generateSupportingFiles(List<File> files, Map<String, Object> operations) throws IOException {
+    public void generateSupportingFiles(List<File> files, Map<String, Object> operations, String repoClonePath) throws IOException {
         String filename = null;
         String templateName = null;
-        Map<String, Object> muleXMLMap = new MuleXMLParser().parseMuleXML(commonAttributes);
+        Map<String, Object> muleXMLMap = new MuleXMLParser().parseMuleXML(commonAttributes, repoClonePath);
         ConvertorFactory factory = new ConvertorFactory();
         String convertor = null;
 
