@@ -19,13 +19,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ApplicationUtility {
-    public static void main(String[] args) throws IOException {
-        ApplicationUtility obj = new ApplicationUtility();
-        String templateText = obj.getResourceText("src/main/resources/raml/RAML.yaml");
-        String json = obj.ramlToJSON(templateText);
-        Map<String,String> map = obj.jsonToMap(json);
-        System.out.println(json);
-    }
 
     public static String ramlToJSON(String templateText) throws IOException {
         ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
@@ -55,17 +48,10 @@ public class ApplicationUtility {
     }
 
 
-    public static String readFromInputStream(Map<String, String> commonAttributes, String repoClonePath)
+    public static String readFromInputStream(String repoClonePath)
             throws IOException {
         StringBuilder resultStringBuilder = new StringBuilder();
         String filePath = repoClonePath.concat("/src/main/mule/mule.xml");
-        /*if (Boolean.parseBoolean(commonAttributes.get("restClient"))) {
-            filePath = "/Users/ja20105259/projects/anypoint-examples/hello-world/src/main/mule/hello-world.xml";
-        } else if (Boolean.parseBoolean(commonAttributes.get("my-sql-database-call"))) {
-            filePath = "/Users/ja20105259/projects/anypoint-examples/querying-a-mysql-database/src/main/mule/querying-a-mysql-database.xml";
-        } else if (Boolean.parseBoolean(commonAttributes.get("mq-client"))) {
-            filePath = "/Users/ja20105259/AnypointStudio/studio-workspace/mule-to-mq/src/main/mule/mule-to-mq.xml";
-        }*/
         try (BufferedReader br = new BufferedReader(new FileReader(filePath));) {
             String line;
             while ((line = br.readLine()) != null) {

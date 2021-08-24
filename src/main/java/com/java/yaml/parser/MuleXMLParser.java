@@ -9,8 +9,8 @@ import java.util.Map;
 
 public class MuleXMLParser {
 
-    public Map<String, Object> parseMuleXML(Map<String, String> commonAttributes, String repoClonePath) throws IOException {
-        String xml = ApplicationUtility.readFromInputStream(commonAttributes, repoClonePath);
+    public Map<String, Object> parseMuleXML(String repoClonePath) throws IOException {
+        String xml = ApplicationUtility.readFromInputStream(repoClonePath);
         XStream xStream = new XStream();
         xStream.registerConverter(new MuleXMLConverter());
         xStream.alias("mule", Map.class);
