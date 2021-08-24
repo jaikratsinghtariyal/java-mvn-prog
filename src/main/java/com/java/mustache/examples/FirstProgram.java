@@ -11,11 +11,11 @@ import java.util.Map;
 public class FirstProgram {
 
     public static void main(String[] args) {
-        /*String text = "One, two, {{three}}. Three sir!";
+        String text = "One, two, {{three}}. Three sir!";
         Template tmpl = Mustache.compiler().compile(text);
-        Map<String, String> data = new HashMap<String, String>();
+        Map<String, String> data = new HashMap<>();
         data.put("three", "five");
-        System.out.println(tmpl.execute(data));*/
+        System.out.println(tmpl.execute(data));
 
         //String tmpl = "{{#things}}{{-last}}, {{-last}}{{this}}{{/things}}";
         /*String tmpl = "{{#things}}{{^-first}}, {{/-first}}{{this}}{{/things}}";
@@ -26,11 +26,11 @@ public class FirstProgram {
         System.out.println(result);*/
 
         //String str = "{{^supportJava6}}import java.util.Objects;\nimport java.util.Arrays;\n{{{supportJava6}}}{{/supportJava6}}";
-        String str = "{{^supportJava6}}import java.util.Objects;\nimport java.util.Arrays;\n{{/supportJava6}}";
+        /*String str = "{{^supportJava6}}import java.util.Objects;\nimport java.util.Arrays;\n{{/supportJava6}}";
         Template tmpl = Mustache.compiler().compile(str);
         Map<String, Boolean> data = new HashMap<String, Boolean>();
         //data.put("supportJava6", false);
-        System.out.println(tmpl.execute(data));
+        System.out.println(tmpl.execute(data));*/
     }
 }
 //First

@@ -27,4 +27,3 @@ public class SampleData {
         map.put("key3","value3");
     }
 }
-
