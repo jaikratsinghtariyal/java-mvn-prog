@@ -1,14 +1,15 @@
+---
 on: push
 jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
-    - name: Hitting API
-      uses: fjogeleit/http-request-action@v1
-      with:
-        url: 'https://openlibrary.org/api/books?bibkeys=ISBN:0201558025,LCCN:93005405&format=json'
-        method: 'GET'
-    - name: Show Response
-      run: |
-        echo ${{ steps.myRequest.outputs.response }}
-        echo ${{ fromJson(steps.myRequest.outputs.response).ISBN }}
+      - name: Hitting API
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: https://openlibrary.org/api/books?bibkeys=ISBN:0201558025,LCCN:93005405&format=json
+          method: GET
+      - name: Show Response
+        run: |
+          echo ${{ steps.myRequest.outputs.response }}
+          echo ${{ fromJson(steps.myRequest.outputs.response).ISBN }}
