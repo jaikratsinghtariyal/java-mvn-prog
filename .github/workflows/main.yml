@@ -8,3 +8,7 @@ jobs:
       with:
         url: 'https://openlibrary.org/api/books?bibkeys=ISBN:0201558025,LCCN:93005405&format=json'
         method: 'GET'
+    - name: Show Response
+      run: |
+        echo ${{ steps.myRequest.outputs.response }}
+        echo ${{ fromJson(steps.myRequest.outputs.response).ISBN }}
