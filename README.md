@@ -1,6 +1,6 @@
 # java-mvn-prog
 
-********************************************WIP********************************************======
+********************************************WIP********************************************
 
 Project is about converting Mule API into Spring Boot Application. 
 To test github action
