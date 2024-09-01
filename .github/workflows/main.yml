@@ -11,5 +11,5 @@ jobs:
         method: GET
     - name: Show Response
       run: |
-        echo ${{ fromJson(steps.myRequest.outputs.response) }}
+        echo ${{ steps.myRequest.outputs.response }}
         echo ${{ fromJson(steps.myRequest.outputs.response).ISBN }}
