@@ -3,7 +3,7 @@ jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy Stage
+    - name: Hitting API
       uses: fjogeleit/http-request-action@v1
       with:
         url: 'https://openlibrary.org/api/books?bibkeys=ISBN:0201558025,LCCN:93005405&format=json'
